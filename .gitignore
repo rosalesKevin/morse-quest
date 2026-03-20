@@ -1,0 +1,11 @@
+.gradle/
+build/
+*/build/
+.kotlin/
+kotlin-js-store/
+.idea/
+*.iml
+local.properties
+.DS_Store
+Thumbs.db
+captures/
