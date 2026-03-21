@@ -1,5 +1,5 @@
 package morse.practice
 
-interface TimeProvider {
+fun interface TimeProvider {
     fun currentEpochMillis(): Long
 }
