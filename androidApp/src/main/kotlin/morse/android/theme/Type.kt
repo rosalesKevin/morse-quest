@@ -12,8 +12,8 @@ val AppTypography = androidx.compose.material3.Typography(
     displayLarge = TextStyle(
         fontFamily = AppSans,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
+        fontSize = 40.sp,
+        lineHeight = 48.sp,
         letterSpacing = (-0.5).sp
     ),
     headlineLarge = TextStyle(
@@ -26,8 +26,8 @@ val AppTypography = androidx.compose.material3.Typography(
     headlineMedium = TextStyle(
         fontFamily = AppSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
+        fontSize = 20.sp,
+        lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
     titleLarge = TextStyle(
@@ -84,8 +84,8 @@ val AppTypography = androidx.compose.material3.Typography(
 val MorseDisplayTextStyle = TextStyle(
     fontFamily = AppMono,
     fontWeight = FontWeight.Normal,
-    fontSize = 24.sp,
-    lineHeight = 32.sp,
+    fontSize = 28.sp,
+    lineHeight = 36.sp,
     letterSpacing = 2.sp
 )
 

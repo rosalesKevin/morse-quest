@@ -8,29 +8,33 @@ import androidx.compose.ui.graphics.Color
 data class ExtendedColors(
     val success: Color,
     val successContainer: Color,
-    val signalAmber: Color,
-    val signalGlow: Color
+    val signalActive: Color,
+    val signalGlow: Color,
+    val rewardAmber: Color,
 )
 
 val LocalExtendedColors = staticCompositionLocalOf {
     ExtendedColors(
         success = Color.Unspecified,
         successContainer = Color.Unspecified,
-        signalAmber = Color.Unspecified,
-        signalGlow = Color.Unspecified
+        signalActive = Color.Unspecified,
+        signalGlow = Color.Unspecified,
+        rewardAmber = Color.Unspecified,
     )
 }
 
 val lightExtendedColors = ExtendedColors(
     success = LightSuccess,
     successContainer = LightSuccessContainer,
-    signalAmber = LightSignalAmber,
-    signalGlow = LightSignalGlow
+    signalActive = LightSignalActive,
+    signalGlow = LightSignalGlow,
+    rewardAmber = LightRewardAmber,
 )
 
 val darkExtendedColors = ExtendedColors(
     success = DarkSuccess,
     successContainer = DarkSuccessContainer,
-    signalAmber = DarkSignalAmber,
-    signalGlow = DarkSignalGlow
+    signalActive = DarkSignalActive,
+    signalGlow = DarkSignalGlow,
+    rewardAmber = DarkRewardAmber,
 )

@@ -11,7 +11,13 @@ data class HomeSummary(
     val bestAccuracy: Double,
     val longestStreakDays: Int,
     val focusCharacters: List<Char>,
+    val recommendedLevel: HomeSkillLevel,
 )
+
+enum class HomeSkillLevel {
+    BEGINNER,
+    INTERMEDIATE,
+}
 
 object HomeSummaryCalculator {
 
@@ -28,7 +34,20 @@ object HomeSummaryCalculator {
             bestAccuracy = bestSession?.let(::accuracy) ?: 0.0,
             longestStreakDays = longestStreakDays(sessions),
             focusCharacters = tracker.weakCharacters.take(3),
+            recommendedLevel = recommendedLevel(
+                unlockedLessonCount = tracker.unlockedLessons.size,
+                bestAccuracy = bestSession?.let(::accuracy) ?: 0.0,
+            ),
         )
+    }
+
+    private fun recommendedLevel(
+        unlockedLessonCount: Int,
+        bestAccuracy: Double,
+    ): HomeSkillLevel = if (unlockedLessonCount >= 2 || bestAccuracy >= 90.0) {
+        HomeSkillLevel.INTERMEDIATE
+    } else {
+        HomeSkillLevel.BEGINNER
     }
 
     private fun accuracy(session: StoredSession): Double =

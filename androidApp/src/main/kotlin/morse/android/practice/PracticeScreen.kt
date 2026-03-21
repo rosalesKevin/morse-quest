@@ -107,16 +107,20 @@ private fun ExerciseContent(
     val keyboard = LocalSoftwareKeyboardController.current
     var localAnswer by rememberSaveable(state.index) { mutableStateOf(state.answer) }
     val readAndTap = state.exercise as? Exercise.ReadAndTap
+    val encodeWord = state.exercise as? Exercise.EncodeWord
     val tapComposer = remember(state.index, readAndTap?.expectedMorse) {
         MorseTapComposer(
             timingEngine = morse.core.TimingEngine(),
             expectedPattern = readAndTap?.expectedMorse.orEmpty(),
         )
     }
+    val symbolComposer = remember(state.index, encodeWord?.expectedMorse) {
+        MorseSymbolComposer(state.answer)
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Exercise ${state.index + 1} / ${state.total}") })
+            TopAppBar(title = { Text("Practice ${state.index + 1} / ${state.total}") })
         },
     ) { padding ->
         Column(
@@ -138,6 +142,14 @@ private fun ExerciseContent(
                     TapInputCard(
                         expectedPattern = readAndTap.expectedMorse,
                         composer = tapComposer,
+                        onAnswerChanged = {
+                            localAnswer = it
+                            onUpdateAnswer(it)
+                        },
+                    )
+                } else if (encodeWord != null) {
+                    MorseComposerCard(
+                        composer = symbolComposer,
                         onAnswerChanged = {
                             localAnswer = it
                             onUpdateAnswer(it)
@@ -169,6 +181,17 @@ private fun ExerciseContent(
                         OutlinedButton(
                             onClick = {
                                 tapComposer.clear()
+                                localAnswer = ""
+                                onUpdateAnswer("")
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Clear")
+                        }
+                    } else if (encodeWord != null) {
+                        OutlinedButton(
+                            onClick = {
+                                symbolComposer.clear()
                                 localAnswer = ""
                                 onUpdateAnswer("")
                             },
@@ -215,35 +238,117 @@ private fun ExercisePrompt(
         ) {
             when (exercise) {
                 is Exercise.ListenAndIdentify -> {
-                    PromptLabel("Listen and identify the character")
+                    PromptLabel("Listen and identify")
                     PromptButton(onPlayAudio)
                 }
                 is Exercise.ReadAndTap -> {
-                    PromptLabel("Tap the signal for")
+                    PromptLabel("Tap the signal")
                     Text(exercise.character.toString(), style = MaterialTheme.typography.displayLarge)
                     Text(
-                        text = "Press and hold in rhythm. Short holds become dots; longer holds become dashes.",
+                        text = "Press and hold in rhythm. Short holds become dots and longer holds become dashes.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 is Exercise.DecodeWord -> {
-                    PromptLabel("Decode this Morse sequence")
+                    PromptLabel("Decode the signal")
                     Text(exercise.morse, style = MorseDisplayTextStyle)
                     PromptButton(onPlayAudio)
                 }
                 is Exercise.EncodeWord -> {
-                    PromptLabel("Encode this word in Morse")
+                    PromptLabel("Encode in Morse")
                     Text(exercise.word, style = MaterialTheme.typography.displayLarge)
                 }
                 is Exercise.SpeedChallenge -> {
-                    PromptLabel("Speed challenge")
+                    PromptLabel("Speed check")
                     Text(
                         text = "Type what you hear at ${exercise.targetWpm} WPM.",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     PromptButton(onPlayAudio)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MorseComposerCard(
+    composer: MorseSymbolComposer,
+    onAnswerChanged: (String) -> Unit,
+) {
+    val spacing = LocalSpacing.current
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(spacing.md),
+        ) {
+            Text("Build the Morse answer", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = composer.answer.ifBlank { "No symbols added yet" },
+                style = MorseDisplayTextStyle,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+            ) {
+                Button(
+                    onClick = {
+                        composer.appendDot()
+                        onAnswerChanged(composer.answer)
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Dot")
+                }
+                Button(
+                    onClick = {
+                        composer.appendDash()
+                        onAnswerChanged(composer.answer)
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Dash")
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        composer.appendLetterGap()
+                        onAnswerChanged(composer.answer)
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Letter Gap")
+                }
+                OutlinedButton(
+                    onClick = {
+                        composer.appendWordGap()
+                        onAnswerChanged(composer.answer)
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Word Gap")
+                }
+            }
+            OutlinedButton(
+                onClick = {
+                    composer.deleteLast()
+                    onAnswerChanged(composer.answer)
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Delete")
             }
         }
     }
@@ -369,7 +474,7 @@ private fun TapInputCard(
                     modifier = Modifier
                         .size((72f * fillScale).dp)
                         .background(
-                            color = extendedColors.signalAmber.copy(alpha = if (isPressed) 0.28f else 0.08f),
+                            color = extendedColors.signalActive.copy(alpha = if (isPressed) 0.24f else 0.08f),
                             shape = CircleShape,
                         ),
                 )
@@ -404,7 +509,7 @@ private fun GhostPatternRow(
             val width = if (symbol == '.') 18.dp else 40.dp
             val background = when {
                 mismatched -> MaterialTheme.colorScheme.errorContainer
-                matched -> extendedColors.signalAmber.copy(alpha = 0.85f)
+                matched -> extendedColors.signalActive.copy(alpha = 0.85f)
                 else -> MaterialTheme.colorScheme.surfaceContainer
             }
 
@@ -441,7 +546,7 @@ private fun TimelineRow(composer: MorseTapComposer) {
                     .height(16.dp)
                     .background(
                         color = if (segment.matchesHint) {
-                            LocalExtendedColors.current.signalAmber.copy(alpha = 0.9f)
+                            LocalExtendedColors.current.signalActive.copy(alpha = 0.9f)
                         } else {
                             MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                         },
@@ -478,7 +583,7 @@ private fun ResultCard(state: PracticeViewModel.UiState.Exercise) {
             verticalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
             Text(
-                text = if (isCorrect) "Correct signal" else "Signal drift detected",
+                text = if (isCorrect) "Correct" else "Try again",
                 style = MaterialTheme.typography.titleLarge,
                 color = accent,
             )
@@ -506,7 +611,7 @@ private fun SummaryContent(
     val spacing = LocalSpacing.current
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Session Complete") }) },
+        topBar = { TopAppBar(title = { Text("Session summary") }) },
     ) { padding ->
         Column(
             modifier = Modifier

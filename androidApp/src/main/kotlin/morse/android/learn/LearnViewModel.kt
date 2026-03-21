@@ -41,7 +41,7 @@ class LearnViewModel @Inject constructor(
 
     sealed class UiState {
         data class LessonList(val lessons: List<LessonItem>) : UiState()
-        data class LessonDetail(val lessonItem: LessonItem) : UiState()
+        data class LessonDetail(val lessonItem: LessonItem, val allLessons: List<LessonItem>) : UiState()
     }
 
     private val _selectedLesson = MutableStateFlow<Lesson?>(null)
@@ -63,7 +63,8 @@ class LearnViewModel @Inject constructor(
             UiState.LessonList(lessonItems)
         } else {
             UiState.LessonDetail(
-                lessonItems.first { it.lesson.id == selectedLesson.id }
+                lessonItem = lessonItems.first { it.lesson.id == selectedLesson.id },
+                allLessons = lessonItems,
             )
         }
     }.stateIn(

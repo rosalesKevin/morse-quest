@@ -8,6 +8,8 @@ class FakeSettingsRepository(
     initial: UserSettings = UserSettings(),
 ) : ISettingsRepository {
     private val _settings = MutableStateFlow(initial)
+    val currentSettings: UserSettings
+        get() = _settings.value
     override val settings: Flow<UserSettings> = _settings.asStateFlow()
     override suspend fun updateWpm(wpm: Int) { _settings.value = _settings.value.copy(wpm = wpm) }
     override suspend fun updateToneFrequency(hz: Float) { _settings.value = _settings.value.copy(toneFrequencyHz = hz) }

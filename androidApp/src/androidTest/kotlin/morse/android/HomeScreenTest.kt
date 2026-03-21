@@ -3,6 +3,7 @@ package morse.android
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -23,16 +24,23 @@ class HomeScreenTest {
 
     @Test
     fun homeShowsStreakWidget() {
-        composeRule.onNodeWithText("Day streak").assertIsDisplayed()
+        composeRule.onNodeWithText("Current streak").assertIsDisplayed()
     }
 
     @Test
     fun homeShowsAccuracyWidget() {
-        composeRule.onNodeWithText("Accuracy").assertIsDisplayed()
+        composeRule.onNodeWithText("Overall accuracy").assertIsDisplayed()
     }
 
     @Test
     fun homeShowsLessonProgress() {
-        composeRule.onNodeWithText("Lessons").assertIsDisplayed()
+        composeRule.onNodeWithText("Lessons unlocked").assertIsDisplayed()
+    }
+
+    @Test
+    fun startPracticingOpensQuickStartSheet() {
+        composeRule.onNodeWithText("Start Practicing").performClick()
+        composeRule.onNodeWithText("Quick Start").assertIsDisplayed()
+        composeRule.onNodeWithText("Start session").assertIsDisplayed()
     }
 }

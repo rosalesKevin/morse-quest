@@ -31,6 +31,7 @@ class HomeSummaryCalculatorTest {
         assertEquals(4, summary.longestStreakDays)
         assertEquals(22, summary.bestWpm)
         assertEquals(100.0, summary.bestAccuracy)
+        assertEquals(HomeSkillLevel.INTERMEDIATE, summary.recommendedLevel)
     }
 
     @Test
@@ -55,6 +56,7 @@ class HomeSummaryCalculatorTest {
 
         assertEquals("lesson-1", summary.quickPracticeLessonId)
         assertEquals('K', summary.focusCharacters.first())
+        assertEquals(HomeSkillLevel.BEGINNER, summary.recommendedLevel)
     }
 
     private fun storedSession(

@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
@@ -24,7 +25,28 @@ class PracticeScreenTest {
 
     @Test
     fun navigateToPracticeAndSeeFirstExercise() {
-        composeRule.onNodeWithText("Quick Practice").performClick()
+        composeRule.onNodeWithText("Start Practicing").performClick()
+        composeRule.onNodeWithText("Start session").performClick()
         composeRule.onNodeWithText("Submit").assertIsDisplayed()
+    }
+
+    @Test
+    fun clearRemovesCapturedTapInput() {
+        composeRule.onNodeWithText("Start Practicing").performClick()
+        composeRule.onNodeWithText("Start session").performClick()
+        composeRule.onNodeWithText("Submit").performClick()
+        composeRule.onNodeWithText("Next").performClick()
+
+        composeRule.onNodeWithText("No signal captured yet").assertIsDisplayed()
+        composeRule.onNodeWithText("Tap or hold to send Morse").performTouchInput {
+            down(center)
+            advanceEventTime(50)
+            up()
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Clear").performClick()
+
+        composeRule.onNodeWithText("No signal captured yet").assertIsDisplayed()
     }
 }

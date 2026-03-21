@@ -261,7 +261,7 @@ private fun ListeningIndicator(isListening: Boolean) {
                 label = "alpha",
             )
             Surface(
-                color = extendedColors.signalAmber.copy(alpha = 0.18f),
+                color = extendedColors.signalActive.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(999.dp),
             ) {
                 Row(

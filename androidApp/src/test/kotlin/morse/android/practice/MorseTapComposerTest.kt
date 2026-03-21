@@ -1,9 +1,17 @@
 package morse.android.practice
 
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import morse.core.TimingEngine
 import org.junit.Test
 import kotlin.test.assertEquals
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MorseTapComposerTest {
 
     @Test
@@ -40,5 +48,23 @@ class MorseTapComposerTest {
 
         assertEquals("", composer.answer)
         assertEquals(emptyList(), composer.segments)
+    }
+
+    @Test
+    fun `composer answer emits observable updates when presses are recorded and cleared`() = runTest {
+        val composer = MorseTapComposer(TimingEngine())
+        val observedAnswers = async {
+            snapshotFlow { composer.answer }
+                .take(3)
+                .toList()
+        }
+
+        advanceUntilIdle()
+        composer.recordPress(durationMs = 50L)
+        advanceUntilIdle()
+        composer.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf("", ".", ""), observedAnswers.await())
     }
 }

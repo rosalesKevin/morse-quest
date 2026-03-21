@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,11 +41,12 @@ fun ReferenceScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val spacing = LocalSpacing.current
+    val sections = buildReferenceSections(state.entries, state.query)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Morse Reference") },
+                title = { Text("Reference") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -70,38 +72,84 @@ fun ReferenceScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(spacing.md),
             ) {
-                items(state.entries) { entry ->
+                item {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = spacing.lg, vertical = spacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                                .padding(spacing.lg),
+                            verticalArrangement = Arrangement.spacedBy(spacing.xs),
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(spacing.xxs)) {
-                                Text(
-                                    text = entry.character.toString(),
-                                    style = MaterialTheme.typography.titleLarge,
+                            Text("Alphabet and number sheet", style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                text = "Tap any character to hear it. Use search when you want one exact symbol, or scan the grouped sheet when you are learning patterns.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                items(sections) { section ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = section.title,
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(horizontal = spacing.lg, vertical = spacing.md),
+                            )
+                            section.entries.forEachIndexed { index, entry ->
+                                ReferenceEntryRow(
+                                    entry = entry,
+                                    onPlay = { viewModel.playCharacter(entry.character) },
                                 )
-                                Text(
-                                    text = entry.morse,
-                                    style = MorseInlineTextStyle,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            IconButton(onClick = { viewModel.playCharacter(entry.character) }) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = "Play ${entry.character}")
+                                if (index != section.entries.lastIndex) {
+                                    HorizontalDivider()
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReferenceEntryRow(
+    entry: ReferenceViewModel.ReferenceEntry,
+    onPlay: () -> Unit,
+) {
+    val spacing = LocalSpacing.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.lg, vertical = spacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.xxs)) {
+            Text(
+                text = entry.character.toString(),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                text = entry.morse,
+                style = MorseInlineTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onPlay) {
+            Icon(Icons.Default.PlayArrow, contentDescription = "Play ${entry.character}")
         }
     }
 }

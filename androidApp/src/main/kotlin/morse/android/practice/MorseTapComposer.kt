@@ -1,5 +1,6 @@
 package morse.android.practice
 
+import androidx.compose.runtime.mutableStateListOf
 import morse.core.TimingEngine
 
 data class TapVisualSegment(
@@ -12,7 +13,7 @@ class MorseTapComposer(
     private val timingEngine: TimingEngine,
     private val expectedPattern: String = "",
 ) {
-    private val _segments = mutableListOf<TapVisualSegment>()
+    private val _segments = mutableStateListOf<TapVisualSegment>()
     val segments: List<TapVisualSegment> = _segments
 
     val answer: String

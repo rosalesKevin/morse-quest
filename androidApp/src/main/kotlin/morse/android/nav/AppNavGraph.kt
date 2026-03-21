@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import morse.android.audiodecode.AudioDecodeScreen
 import morse.android.home.HomeScreen
 import morse.android.learn.LearnScreen
+import morse.android.practice.PracticeLaunchConfig
 import morse.android.practice.PracticeScreen
 import morse.android.reference.ReferenceScreen
 import morse.android.settings.SettingsScreen
@@ -17,8 +18,8 @@ import morse.android.settings.SettingsScreen
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Learn : Screen("learn")
-    object Practice : Screen("practice/{lessonId}") {
-        fun createRoute(lessonId: String) = "practice/$lessonId"
+    object Practice : Screen("practice?mode={mode}&lessonId={lessonId}&difficulty={difficulty}&wpm={wpm}") {
+        fun createRoute(config: PracticeLaunchConfig) = config.toRoute()
     }
     object Reference : Screen("reference")
     object Settings : Screen("settings")
@@ -31,8 +32,8 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToLearn = { navController.navigate(Screen.Learn.route) },
-                onNavigateToPractice = { lessonId ->
-                    navController.navigate(Screen.Practice.createRoute(lessonId))
+                onNavigateToPractice = { config ->
+                    navController.navigate(Screen.Practice.createRoute(config))
                 },
                 onNavigateToReference = { navController.navigate(Screen.Reference.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
@@ -42,14 +43,34 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         composable(Screen.Learn.route) {
             LearnScreen(
                 onNavigateToPractice = { lessonId ->
-                    navController.navigate(Screen.Practice.createRoute(lessonId))
+                    navController.navigate(Screen.Practice.createRoute(PracticeLaunchConfig.lesson(lessonId)))
                 },
                 onBack = { navController.popBackStack() },
             )
         }
         composable(
             route = Screen.Practice.route,
-            arguments = listOf(navArgument("lessonId") { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument("mode") {
+                    type = NavType.StringType
+                    defaultValue = "lesson"
+                },
+                navArgument("lessonId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("difficulty") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("wpm") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
         ) {
             PracticeScreen(onFinished = { navController.popBackStack() })
         }

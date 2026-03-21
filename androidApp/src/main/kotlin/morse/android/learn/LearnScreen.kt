@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,10 +34,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,19 +62,35 @@ fun LearnScreen(
     viewModel: LearnViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    when (val current = state) {
-        is LearnViewModel.UiState.LessonList -> LessonListContent(
-            items = current.lessons,
-            onSelect = { viewModel.selectLesson(it) },
-            onBack = onBack,
-        )
-        is LearnViewModel.UiState.LessonDetail -> LessonDetailContent(
-            item = current.lessonItem,
-            onPlayChar = { viewModel.playCharacter(it) },
-            onStartPractice = { onNavigateToPractice(current.lessonItem.lesson.id) },
-            onBack = { viewModel.back() },
-        )
+    val listItems = when (val s = state) {
+        is LearnViewModel.UiState.LessonList -> s.lessons
+        is LearnViewModel.UiState.LessonDetail -> s.allLessons
+    }
+
+    LessonListContent(
+        items = listItems,
+        onSelect = { viewModel.selectLesson(it) },
+        onBack = onBack,
+    )
+
+    if (state is LearnViewModel.UiState.LessonDetail) {
+        val detail = state as LearnViewModel.UiState.LessonDetail
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.back() },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            LessonDetailSheet(
+                item = detail.lessonItem,
+                onPlayChar = { viewModel.playCharacter(it) },
+                onStartPractice = {
+                    viewModel.back()
+                    onNavigateToPractice(detail.lessonItem.lesson.id)
+                },
+            )
+        }
     }
 }
 
@@ -89,7 +106,7 @@ private fun LessonListContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Skill Tree") },
+                title = { Text("Learn") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -125,12 +142,12 @@ private fun LessonListContent(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
                             Text(
-                                text = "Progress through lessons in sequence. Mastery unlocks the next relay on the line.",
+                                text = "Work through lessons in order and keep the path easy to scan.",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                             Text(
-                                text = "Available lessons pulse forward. Locked lessons hold position until your timing is ready.",
+                                text = "Open any available lesson as a study sheet, hear each character, and jump straight into practice when you are ready.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -298,125 +315,114 @@ private fun LessonSummaryCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LessonDetailContent(
+private fun LessonDetailSheet(
     item: LearnViewModel.LessonItem,
     onPlayChar: (Char) -> Unit,
     onStartPractice: () -> Unit,
-    onBack: () -> Unit,
 ) {
     val spacing = LocalSpacing.current
+    val extendedColors = LocalExtendedColors.current
     val headerColor = when (item.visualState) {
-        LessonVisualState.Mastered -> LocalExtendedColors.current.successContainer
+        LessonVisualState.Mastered -> extendedColors.successContainer
         LessonVisualState.InProgress -> MaterialTheme.colorScheme.primaryContainer
         LessonVisualState.Available -> MaterialTheme.colorScheme.surfaceVariant
         LessonVisualState.Locked -> MaterialTheme.colorScheme.surfaceContainer
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(item.lesson.title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = spacing.lg, vertical = spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(spacing.lg),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.lg)
+            .padding(bottom = spacing.xxl),
+        verticalArrangement = Arrangement.spacedBy(spacing.lg),
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = headerColor),
+            shape = RoundedCornerShape(20.dp),
         ) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = headerColor),
-                shape = RoundedCornerShape(24.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(spacing.sm),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.xl),
-                    verticalArrangement = Arrangement.spacedBy(spacing.sm),
-                ) {
-                    Text("Introduced characters", style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        text = item.lesson.characters.joinToString(" ") { it.toString() },
-                        style = MaterialTheme.typography.displayLarge,
+                Text(item.lesson.title, style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    text = item.lesson.characters.joinToString(" ") { it.toString() },
+                    style = MaterialTheme.typography.displayLarge,
+                )
+                Text(
+                    text = item.lesson.characters.joinToString("  ") {
+                        MorseAlphabet.characters[it].orEmpty()
+                    },
+                    style = MorseInlineTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (item.visualState != LessonVisualState.Locked) {
+                    LinearProgressIndicator(
+                        progress = { item.masteryPercent / 100f },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    Text(
-                        text = item.lesson.characters.joinToString("  ") { MorseAlphabet.characters[it].orEmpty() },
-                        style = MorseInlineTextStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (item.visualState != LessonVisualState.Locked) {
-                        LinearProgressIndicator(
-                            progress = { item.masteryPercent / 100f },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
                 }
             }
+        }
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(20.dp),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    item.lesson.characters.forEachIndexed { index, char ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.lg, vertical = spacing.md),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(spacing.xxs)) {
-                                Text(char.toString(), style = MaterialTheme.typography.titleLarge)
-                                Text(
-                                    text = MorseAlphabet.characters[char].orEmpty(),
-                                    style = MorseInlineTextStyle,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            IconButton(onClick = { onPlayChar(char) }) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = "Play $char")
-                            }
-                        }
-                        if (index != item.lesson.characters.lastIndex) {
-                            HorizontalDivider()
-                        }
-                    }
-                }
-            }
-
-            if (item.isUnlocked) {
-                Button(
-                    onClick = onStartPractice,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Start Practice")
-                }
-            } else {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(20.dp),
-                ) {
-                    Text(
-                        text = "Complete the previous lesson thresholds to unlock this relay.",
-                        style = MaterialTheme.typography.bodyMedium,
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(20.dp),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                item.lesson.characters.forEachIndexed { index, char ->
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(spacing.lg),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                            .padding(horizontal = spacing.lg, vertical = spacing.md),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(spacing.xxs)) {
+                            Text(char.toString(), style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                text = MorseAlphabet.characters[char].orEmpty(),
+                                style = MorseInlineTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = { onPlayChar(char) }) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play $char")
+                        }
+                    }
+                    if (index != item.lesson.characters.lastIndex) {
+                        HorizontalDivider()
+                    }
                 }
             }
-            Spacer(modifier = Modifier.fillMaxHeight())
         }
+
+        if (item.isUnlocked) {
+            Button(
+                onClick = onStartPractice,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Start Practice")
+            }
+        } else {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                Text(
+                    text = "Complete the previous lesson thresholds to unlock this lesson.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.lg),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(spacing.sm))
     }
 }

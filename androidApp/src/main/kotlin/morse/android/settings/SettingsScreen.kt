@@ -72,7 +72,7 @@ fun SettingsScreen(
         ) {
             SettingsSection(
                 title = "Appearance",
-                copy = "Keep the station matched to system theme or lock it to a dedicated light or dark surface.",
+                copy = "Match the app to system theme or lock it to a dedicated light or dark look.",
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
                     ThemeMode.entries.forEach { mode ->
@@ -87,7 +87,7 @@ fun SettingsScreen(
 
             SettingsSection(
                 title = "Tone profile",
-                copy = "Choose the playback character you want for lessons and practice.",
+                copy = "Choose how playback should sound during lessons and practice.",
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
                     AudioProfile.entries.forEach { profile ->
@@ -102,7 +102,7 @@ fun SettingsScreen(
 
             SettingsSection(
                 title = "Timing",
-                copy = "Tune speed and pitch without leaving the session flow.",
+                copy = "Adjust speed and pitch without leaving the beginner-friendly defaults behind.",
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
                     Column(verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
@@ -129,7 +129,7 @@ fun SettingsScreen(
 
             SettingsSection(
                 title = "Feedback",
-                copy = "Use haptics when you want a tactile timing cue alongside the audio tone.",
+                copy = "Add tactile timing cues when you want more than audio alone.",
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
