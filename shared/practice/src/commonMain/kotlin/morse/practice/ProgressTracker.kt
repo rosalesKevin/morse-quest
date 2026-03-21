@@ -92,11 +92,7 @@ class ProgressTracker(
             .filter { it.lesson.id == previousLesson.id }
             .map { it.score }
 
-        return if (index == 1) {
-            previousScores.any { it.accuracy >= 90.0 } || previousScores.count { it.accuracy >= 80.0 } >= 2
-        } else {
-            previousScores.count { it.accuracy >= 80.0 } >= 3
-        }
+        return previousScores.any { it.accuracy > 75.0 }
     }
 
     private fun characterAttempts(lesson: Lesson): Map<Char, Int> {

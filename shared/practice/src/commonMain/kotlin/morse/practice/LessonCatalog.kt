@@ -7,15 +7,35 @@ object LessonCatalog {
     private val encoder = MorseEncoder(TimingEngine())
 
     fun defaultLessons(): List<Lesson> {
-        return KochOrder.characters.chunked(2).mapIndexed { index, introducedCharacters ->
-            val unlockedCharacters = KochOrder.characters.take((index + 1) * 2)
-            Lesson(
+        val standardPairs = KochOrder.characters.chunked(2)
+        val lessons = mutableListOf<Lesson>()
+
+        standardPairs.forEachIndexed { index, introducedCharacters ->
+            lessons += Lesson(
                 id = "lesson-${index + 1}",
                 title = "Lesson ${index + 1}: ${introducedCharacters.joinToString(" ")}",
                 characters = introducedCharacters,
-                exercises = buildExercises(unlockedCharacters),
+                exercises = buildExercises(introducedCharacters),
+                kind = LessonKind.Standard,
+                introducedCharacters = introducedCharacters,
             )
+
+            val standardLessonNumber = index + 1
+            if (standardLessonNumber % 2 == 0) {
+                val reviewCharacters = KochOrder.characters.take(standardLessonNumber * 2)
+                val reviewNumber = standardLessonNumber / 2
+                lessons += Lesson(
+                    id = "review-$reviewNumber",
+                    title = "Review $reviewNumber",
+                    characters = reviewCharacters,
+                    exercises = buildExercises(reviewCharacters),
+                    kind = LessonKind.Review,
+                    introducedCharacters = emptyList(),
+                )
+            }
         }
+
+        return lessons
     }
 
     private fun buildExercises(unlockedCharacters: List<Char>): List<Exercise> {

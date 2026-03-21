@@ -30,12 +30,9 @@ class LessonProgressMapperTest {
     }
 
     @Test
-    fun `map marks unlocked lessons with no sessions as available`() {
+    fun `map makes review available after passing second lesson and keeps next standard locked`() {
         val sessions = listOf(
             storedSession(lessonId = lessons[0].id, correct = 8, total = 10),
-            storedSession(lessonId = lessons[0].id, correct = 9, total = 10),
-            storedSession(lessonId = lessons[1].id, correct = 8, total = 10),
-            storedSession(lessonId = lessons[1].id, correct = 8, total = 10),
             storedSession(lessonId = lessons[1].id, correct = 8, total = 10),
         )
 
@@ -47,6 +44,24 @@ class LessonProgressMapperTest {
 
         assertEquals(LessonVisualState.Available, items[2].visualState)
         assertEquals(LessonVisualState.Locked, items[3].visualState)
+    }
+
+    @Test
+    fun `map unlocks next standard only after review node is passed above seventy five percent`() {
+        val sessions = listOf(
+            storedSession(lessonId = lessons[0].id, correct = 8, total = 10),
+            storedSession(lessonId = lessons[1].id, correct = 8, total = 10),
+            storedSession(lessonId = lessons[2].id, correct = 8, total = 10),
+        )
+
+        val items = LessonProgressMapper.map(
+            sessions = sessions,
+            lessons = lessons,
+            timeProvider = TimeProvider { 0L },
+        )
+
+        assertEquals(LessonVisualState.InProgress, items[2].visualState)
+        assertEquals(LessonVisualState.Available, items[3].visualState)
     }
 
     @Test

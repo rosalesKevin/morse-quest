@@ -4,15 +4,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ProgressTrackerTest {
-    private val lessons = LessonCatalog.defaultLessons().take(4)
+    private val lessons = LessonCatalog.defaultLessons().take(6)
 
     @Test
-    fun unlocksSecondLessonAfterSingleNinetyPercentSession() {
+    fun unlocksNextNodeAfterSingleSessionAboveSeventyFivePercent() {
         val tracker = ProgressTracker(FakeTimeProvider())
 
         tracker.recordSession(
             lesson = lessons[0],
-            score = SessionScore(correct = 9, total = 10, wpm = 20.0),
+            score = SessionScore(correct = 8, total = 10, wpm = 20.0),
             mistakes = emptyList(),
         )
 
@@ -20,30 +20,37 @@ class ProgressTrackerTest {
     }
 
     @Test
-    fun unlocksSecondLessonAfterTwoEightyPercentSessions() {
+    fun doesNotUnlockNextNodeAtExactlySeventyFivePercent() {
         val tracker = ProgressTracker(FakeTimeProvider())
 
-        repeat(2) {
-            tracker.recordSession(
-                lesson = lessons[0],
-                score = SessionScore(correct = 8, total = 10, wpm = 20.0),
-                mistakes = emptyList(),
-            )
-        }
+        tracker.recordSession(
+            lesson = lessons[0],
+            score = SessionScore(correct = 3, total = 4, wpm = 20.0),
+            mistakes = emptyList(),
+        )
 
-        assertEquals(listOf(lessons[0], lessons[1]), tracker.getUnlockedLessons())
+        assertEquals(listOf(lessons[0]), tracker.getUnlockedLessons())
     }
 
     @Test
-    fun unlocksLaterLessonsAfterThreePassingSessionsOnPreviousLesson() {
+    fun reviewNodeParticipatesInTheUnlockChain() {
         val tracker = ProgressTracker(FakeTimeProvider())
 
-        tracker.recordSession(lessons[0], SessionScore(9, 10, 20.0), emptyList())
-        repeat(3) {
-            tracker.recordSession(lessons[1], SessionScore(8, 10, 20.0), emptyList())
-        }
+        tracker.recordSession(lessons[0], SessionScore(8, 10, 20.0), emptyList())
+        tracker.recordSession(lessons[1], SessionScore(8, 10, 20.0), emptyList())
 
         assertEquals(listOf(lessons[0], lessons[1], lessons[2]), tracker.getUnlockedLessons())
+    }
+
+    @Test
+    fun laterStandardLessonUnlocksOnlyAfterPassingTheRequiredReviewNode() {
+        val tracker = ProgressTracker(FakeTimeProvider())
+
+        tracker.recordSession(lessons[0], SessionScore(8, 10, 20.0), emptyList())
+        tracker.recordSession(lessons[1], SessionScore(8, 10, 20.0), emptyList())
+        tracker.recordSession(lessons[2], SessionScore(8, 10, 20.0), emptyList())
+
+        assertEquals(listOf(lessons[0], lessons[1], lessons[2], lessons[3]), tracker.getUnlockedLessons())
     }
 
     @Test

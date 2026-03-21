@@ -53,6 +53,8 @@ import morse.android.theme.LocalExtendedColors
 import morse.android.theme.LocalSpacing
 import morse.android.theme.MorseInlineTextStyle
 import morse.core.MorseAlphabet
+import morse.practice.Lesson
+import morse.practice.LessonKind
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,6 +86,7 @@ fun LearnScreen(
         ) {
             LessonDetailSheet(
                 item = detail.lessonItem,
+                allLessons = detail.allLessons,
                 onPlayChar = { viewModel.playCharacter(it) },
                 onStartPractice = {
                     viewModel.back()
@@ -318,6 +321,7 @@ private fun LessonSummaryCard(
 @Composable
 private fun LessonDetailSheet(
     item: LearnViewModel.LessonItem,
+    allLessons: List<LearnViewModel.LessonItem>,
     onPlayChar: (Char) -> Unit,
     onStartPractice: () -> Unit,
 ) {
@@ -359,6 +363,13 @@ private fun LessonDetailSheet(
                     style = MorseInlineTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                lessonInfoLines(item.lesson).forEach { info ->
+                    Text(
+                        text = info,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (item.visualState != LessonVisualState.Locked) {
                     LinearProgressIndicator(
                         progress = { item.masteryPercent / 100f },
@@ -413,7 +424,7 @@ private fun LessonDetailSheet(
                 shape = RoundedCornerShape(20.dp),
             ) {
                 Text(
-                    text = "Complete the previous lesson thresholds to unlock this lesson.",
+                    text = unlockRequirement(item.lesson, allLessons),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -424,5 +435,29 @@ private fun LessonDetailSheet(
         }
 
         Spacer(modifier = Modifier.height(spacing.sm))
+    }
+}
+
+private fun lessonInfoLines(lesson: Lesson): List<String> = when (lesson.kind) {
+    LessonKind.Standard -> listOf(
+        "Introduces: ${lesson.introducedCharacters.joinToString(" ")}",
+        "Practice set: ${lesson.characters.joinToString(" ")}",
+    )
+    LessonKind.Review -> listOf(
+        "Review set: ${lesson.characters.joinToString(" ")}",
+        "Mixed review of all characters covered so far.",
+    )
+}
+
+private fun unlockRequirement(
+    lesson: Lesson,
+    allLessons: List<LearnViewModel.LessonItem>,
+): String {
+    val lessonIndex = allLessons.indexOfFirst { it.lesson.id == lesson.id }
+    val previousLesson = allLessons.getOrNull(lessonIndex - 1)?.lesson
+    return if (previousLesson == null) {
+        "This lesson is available at the start of the path."
+    } else {
+        "Score above 75% on ${previousLesson.title} to unlock this level."
     }
 }
