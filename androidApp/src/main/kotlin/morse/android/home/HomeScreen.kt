@@ -30,6 +30,7 @@ fun HomeScreen(
     onNavigateToPractice: (String) -> Unit,
     onNavigateToReference: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAudioDecode: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -77,6 +78,9 @@ fun HomeScreen(
             }
             Button(onClick = onNavigateToSettings, modifier = Modifier.fillMaxWidth()) {
                 Text("Settings")
+            }
+            Button(onClick = onNavigateToAudioDecode, modifier = Modifier.fillMaxWidth()) {
+                Text("Decode Audio")
             }
         }
     }

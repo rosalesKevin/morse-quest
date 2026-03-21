@@ -1,5 +1,6 @@
 package morse.android.haptics
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -21,6 +22,7 @@ class HapticsController @Inject constructor(
 
     private val vibrator: Vibrator = context.getSystemService(Vibrator::class.java)
 
+    @SuppressLint("MissingPermission") // VIBRATE is a normal permission; granted at install time
     override fun vibrateSignals(signals: List<Signal>) {
         val timings = signals.map { it.durationMs }.toLongArray()
         val amplitudes = signals.map { signal ->
@@ -33,6 +35,7 @@ class HapticsController @Inject constructor(
         vibrator.vibrate(effect)
     }
 
+    @SuppressLint("MissingPermission") // VIBRATE is a normal permission; granted at install time
     override fun cancel() {
         vibrator.cancel()
     }

@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import morse.android.audiodecode.AudioDecodeScreen
 import morse.android.home.HomeScreen
 import morse.android.learn.LearnScreen
 import morse.android.practice.PracticeScreen
@@ -21,6 +22,7 @@ sealed class Screen(val route: String) {
     }
     object Reference : Screen("reference")
     object Settings : Screen("settings")
+    object AudioDecode : Screen("audiodecode")
 }
 
 @Composable
@@ -34,6 +36,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 },
                 onNavigateToReference = { navController.navigate(Screen.Reference.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToAudioDecode = { navController.navigate(Screen.AudioDecode.route) },
             )
         }
         composable(Screen.Learn.route) {
@@ -55,6 +58,9 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         }
         composable(Screen.Settings.route) {
             SettingsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.AudioDecode.route) {
+            AudioDecodeScreen(onBack = { navController.popBackStack() })
         }
     }
 }

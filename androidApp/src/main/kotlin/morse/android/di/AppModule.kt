@@ -9,6 +9,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import morse.android.audiodecode.IAudioCapture
+import morse.android.audiodecode.MicrophoneCapture
 import morse.core.TimingEngine
 import morse.practice.Lesson
 import morse.practice.LessonCatalog
@@ -37,4 +39,7 @@ object AppModule {
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
         context.dataStore
+
+    @Provides
+    fun provideMicrophoneCapture(): IAudioCapture = MicrophoneCapture()
 }
