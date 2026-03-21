@@ -19,6 +19,7 @@ import morse.practice.TimeProvider
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -215,5 +216,41 @@ class PracticeViewModelTest {
             }
         }
         return exercises
+    }
+
+    @Test
+    fun `hints start visible for all exercise types`() = runTest {
+        val vm = viewModel()
+        assertTrue(vm.isHintVisible(Exercise.ListenAndIdentify::class))
+        assertTrue(vm.isHintVisible(Exercise.ReadAndTap::class))
+        assertTrue(vm.isHintVisible(Exercise.DecodeWord::class))
+        assertTrue(vm.isHintVisible(Exercise.EncodeWord::class))
+        assertTrue(vm.isHintVisible(Exercise.SpeedChallenge::class))
+    }
+
+    @Test
+    fun `hint collapses after first correct answer for that type`() = runTest {
+        val vm = viewModel()
+        assertTrue(vm.isHintVisible(Exercise.ListenAndIdentify::class))
+
+        val state = vm.uiState.value as PracticeViewModel.UiState.Exercise
+        val correctAnswer = correctAnswerFor(state.exercise)
+        vm.updateAnswer(correctAnswer)
+        vm.submitAnswer()
+
+        assertFalse(vm.isHintVisible(state.exercise::class))
+    }
+
+    @Test
+    fun `hint for one type does not affect other types`() = runTest {
+        val vm = viewModel()
+        val state = vm.uiState.value as PracticeViewModel.UiState.Exercise
+        val correctAnswer = correctAnswerFor(state.exercise)
+        vm.updateAnswer(correctAnswer)
+        vm.submitAnswer()
+
+        // Other types should still be visible
+        assertTrue(vm.isHintVisible(Exercise.ReadAndTap::class))
+        assertTrue(vm.isHintVisible(Exercise.EncodeWord::class))
     }
 }

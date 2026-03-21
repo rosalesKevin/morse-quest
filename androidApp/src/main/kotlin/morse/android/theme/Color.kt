@@ -47,3 +47,11 @@ val DarkErrorContainer = Color(0xFF601611)
 val DarkSignalActive = Color(0xFF82C4FF)
 val DarkSignalGlow = Color(0x664DA3FF)
 val DarkRewardAmber = Color(0xFFFFD60A)
+
+// Exercise mode accents
+val ListenPurple = Color(0xFF8B5CF6)
+val ListenPurpleDark = Color(0xFFA78BFA)
+val DecodeTeal = Color(0xFF14B8A6)
+val DecodeTealDark = Color(0xFF2DD4BF)
+val EncodeOrange = Color(0xFFF97316)
+val EncodeOrangeDark = Color(0xFFFB923C)

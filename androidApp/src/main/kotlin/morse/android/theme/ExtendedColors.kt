@@ -11,6 +11,9 @@ data class ExtendedColors(
     val signalActive: Color,
     val signalGlow: Color,
     val rewardAmber: Color,
+    val exercisePurple: Color,
+    val exerciseTeal: Color,
+    val exerciseOrange: Color,
 )
 
 val LocalExtendedColors = staticCompositionLocalOf {
@@ -20,6 +23,9 @@ val LocalExtendedColors = staticCompositionLocalOf {
         signalActive = Color.Unspecified,
         signalGlow = Color.Unspecified,
         rewardAmber = Color.Unspecified,
+        exercisePurple = Color.Unspecified,
+        exerciseTeal = Color.Unspecified,
+        exerciseOrange = Color.Unspecified,
     )
 }
 
@@ -29,6 +35,9 @@ val lightExtendedColors = ExtendedColors(
     signalActive = LightSignalActive,
     signalGlow = LightSignalGlow,
     rewardAmber = LightRewardAmber,
+    exercisePurple = ListenPurple,
+    exerciseTeal = DecodeTeal,
+    exerciseOrange = EncodeOrange,
 )
 
 val darkExtendedColors = ExtendedColors(
@@ -37,4 +46,7 @@ val darkExtendedColors = ExtendedColors(
     signalActive = DarkSignalActive,
     signalGlow = DarkSignalGlow,
     rewardAmber = DarkRewardAmber,
+    exercisePurple = ListenPurpleDark,
+    exerciseTeal = DecodeTealDark,
+    exerciseOrange = EncodeOrangeDark,
 )

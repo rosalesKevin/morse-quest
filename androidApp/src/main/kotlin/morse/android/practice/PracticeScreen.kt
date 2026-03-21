@@ -1,31 +1,19 @@
 package morse.android.practice
 
-import android.os.SystemClock
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
@@ -36,35 +24,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.delay
+import kotlin.reflect.KClass
 import morse.android.theme.LocalExtendedColors
 import morse.android.theme.LocalSpacing
 import morse.android.theme.MorseDisplayTextStyle
@@ -86,6 +62,7 @@ fun PracticeScreen(
             onSubmit = viewModel::submitAnswer,
             onNext = viewModel::nextExercise,
             onPlayAudio = viewModel::playCurrentExercise,
+            viewModel = viewModel,
         )
         is PracticeViewModel.UiState.Summary -> SummaryContent(
             state = current,
@@ -102,20 +79,18 @@ private fun ExerciseContent(
     onSubmit: () -> Unit,
     onNext: () -> Unit,
     onPlayAudio: () -> Unit,
+    viewModel: PracticeViewModel,
 ) {
     val spacing = LocalSpacing.current
     val keyboard = LocalSoftwareKeyboardController.current
     var localAnswer by rememberSaveable(state.index) { mutableStateOf(state.answer) }
-    val readAndTap = state.exercise as? Exercise.ReadAndTap
-    val encodeWord = state.exercise as? Exercise.EncodeWord
-    val tapComposer = remember(state.index, readAndTap?.expectedMorse) {
-        MorseTapComposer(
-            timingEngine = morse.core.TimingEngine(),
-            expectedPattern = readAndTap?.expectedMorse.orEmpty(),
-        )
-    }
-    val symbolComposer = remember(state.index, encodeWord?.expectedMorse) {
-        MorseSymbolComposer(state.answer)
+
+    val config = remember(state.exercise) { ModeStripConfig.from(state.exercise) }
+    val hintVisible = viewModel.isHintVisible(state.exercise::class)
+    var previousExerciseType by remember { mutableStateOf<KClass<out Exercise>?>(null) }
+    val isTypeChange = previousExerciseType != null && previousExerciseType != state.exercise::class
+    LaunchedEffect(state.exercise::class) {
+        previousExerciseType = state.exercise::class
     }
 
     Scaffold(
@@ -135,79 +110,88 @@ private fun ExerciseContent(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            AnimatedContent(
+                targetState = state.exercise::class,
+                transitionSpec = {
+                    if (isTypeChange) {
+                        (slideInHorizontally { it } + fadeIn()) togetherWith
+                            (slideOutHorizontally { -it } + fadeOut())
+                    } else {
+                        fadeIn() togetherWith fadeOut()
+                    }
+                },
+                label = "mode-strip-transition",
+            ) { _ ->
+                ModeStrip(
+                    config = config,
+                    hintVisible = hintVisible,
+                    onToggleHint = { viewModel.toggleHint(state.exercise::class) },
+                )
+            }
+
             ExercisePrompt(exercise = state.exercise, onPlayAudio = onPlayAudio)
 
             if (state.result == null) {
-                if (readAndTap != null) {
-                    TapInputCard(
-                        expectedPattern = readAndTap.expectedMorse,
-                        composer = tapComposer,
-                        onAnswerChanged = {
-                            localAnswer = it
-                            onUpdateAnswer(it)
-                        },
-                    )
-                } else if (encodeWord != null) {
-                    MorseComposerCard(
-                        composer = symbolComposer,
-                        onAnswerChanged = {
-                            localAnswer = it
-                            onUpdateAnswer(it)
-                        },
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = localAnswer,
-                        onValueChange = {
-                            localAnswer = it
-                            onUpdateAnswer(it)
-                        },
-                        label = { Text("Your answer") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = {
-                            keyboard?.hide()
-                            onSubmit()
-                        }),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.md),
-                ) {
-                    if (readAndTap != null) {
-                        OutlinedButton(
-                            onClick = {
-                                tapComposer.clear()
-                                localAnswer = ""
-                                onUpdateAnswer("")
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Clear")
+                when (val exercise = state.exercise) {
+                    is Exercise.ReadAndTap -> {
+                        viewModel.touchpadState?.let { pad ->
+                            MorseTouchpad(state = pad, allowWordGap = false)
                         }
-                    } else if (encodeWord != null) {
-                        OutlinedButton(
-                            onClick = {
-                                symbolComposer.clear()
-                                localAnswer = ""
-                                onUpdateAnswer("")
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Clear")
-                        }
+                        Button(
+                            onClick = { keyboard?.hide(); onSubmit() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Submit") }
                     }
-                    Button(
-                        onClick = {
-                            keyboard?.hide()
-                            onSubmit()
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Submit")
+                    is Exercise.EncodeWord -> {
+                        viewModel.touchpadState?.let { pad ->
+                            MorseTouchpad(state = pad, allowWordGap = false)
+                        }
+                        Button(
+                            onClick = { keyboard?.hide(); onSubmit() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Submit") }
+                    }
+                    is Exercise.ListenAndIdentify -> {
+                        SingleCharacterSlot(
+                            value = localAnswer,
+                            onValueChange = {
+                                localAnswer = it
+                                onUpdateAnswer(it)
+                            },
+                            onSubmit = { keyboard?.hide(); onSubmit() },
+                        )
+                    }
+                    is Exercise.DecodeWord -> {
+                        GuidedWordInput(
+                            value = localAnswer,
+                            onValueChange = {
+                                localAnswer = it
+                                onUpdateAnswer(it)
+                            },
+                            onSubmit = { keyboard?.hide(); onSubmit() },
+                            expectedLength = exercise.answer.length,
+                            placeholder = "Type the decoded word...",
+                        )
+                        Button(
+                            onClick = { keyboard?.hide(); onSubmit() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Submit") }
+                    }
+                    is Exercise.SpeedChallenge -> {
+                        GuidedWordInput(
+                            value = localAnswer,
+                            onValueChange = {
+                                localAnswer = it
+                                onUpdateAnswer(it)
+                            },
+                            onSubmit = { keyboard?.hide(); onSubmit() },
+                            expectedLength = null,
+                            placeholder = "Transcribe here...",
+                        )
+                        Button(
+                            onClick = { keyboard?.hide(); onSubmit() },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Submit") }
                     }
                 }
             } else {
@@ -238,31 +222,21 @@ private fun ExercisePrompt(
         ) {
             when (exercise) {
                 is Exercise.ListenAndIdentify -> {
-                    PromptLabel("Listen and identify")
                     PromptButton(onPlayAudio)
                 }
                 is Exercise.ReadAndTap -> {
-                    PromptLabel("Tap the signal")
                     Text(exercise.character.toString(), style = MaterialTheme.typography.displayLarge)
-                    Text(
-                        text = "Press and hold in rhythm. Short holds become dots and longer holds become dashes.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
                 is Exercise.DecodeWord -> {
-                    PromptLabel("Decode the signal")
                     Text(exercise.morse, style = MorseDisplayTextStyle)
                     PromptButton(onPlayAudio)
                 }
                 is Exercise.EncodeWord -> {
-                    PromptLabel("Encode in Morse")
                     Text(exercise.word, style = MaterialTheme.typography.displayLarge)
                 }
                 is Exercise.SpeedChallenge -> {
-                    PromptLabel("Speed check")
                     Text(
-                        text = "Type what you hear at ${exercise.targetWpm} WPM.",
+                        text = "At ${exercise.targetWpm} WPM",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     PromptButton(onPlayAudio)
@@ -273,287 +247,9 @@ private fun ExercisePrompt(
 }
 
 @Composable
-private fun MorseComposerCard(
-    composer: MorseSymbolComposer,
-    onAnswerChanged: (String) -> Unit,
-) {
-    val spacing = LocalSpacing.current
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(24.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(spacing.md),
-        ) {
-            Text("Build the Morse answer", style = MaterialTheme.typography.labelLarge)
-            Text(
-                text = composer.answer.ifBlank { "No symbols added yet" },
-                style = MorseDisplayTextStyle,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-            ) {
-                Button(
-                    onClick = {
-                        composer.appendDot()
-                        onAnswerChanged(composer.answer)
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Dot")
-                }
-                Button(
-                    onClick = {
-                        composer.appendDash()
-                        onAnswerChanged(composer.answer)
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Dash")
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        composer.appendLetterGap()
-                        onAnswerChanged(composer.answer)
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Letter Gap")
-                }
-                OutlinedButton(
-                    onClick = {
-                        composer.appendWordGap()
-                        onAnswerChanged(composer.answer)
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Word Gap")
-                }
-            }
-            OutlinedButton(
-                onClick = {
-                    composer.deleteLast()
-                    onAnswerChanged(composer.answer)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Delete")
-            }
-        }
-    }
-}
-
-@Composable
-private fun PromptLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-@Composable
 private fun PromptButton(onPlayAudio: () -> Unit) {
     IconButton(onClick = onPlayAudio) {
         Icon(Icons.Default.PlayArrow, contentDescription = "Play prompt")
-    }
-}
-
-@Composable
-private fun TapInputCard(
-    expectedPattern: String,
-    composer: MorseTapComposer,
-    onAnswerChanged: (String) -> Unit,
-) {
-    val spacing = LocalSpacing.current
-    val extendedColors = LocalExtendedColors.current
-    var isPressed by remember { mutableStateOf(false) }
-    var pressStartedAt by remember { mutableLongStateOf(0L) }
-    var holdDurationMs by remember { mutableLongStateOf(0L) }
-    var keyboardPressed by remember { mutableStateOf(false) }
-    val dashThreshold = remember { morse.core.TimingEngine().dashDurationMs / 2 }
-    val animatedGlow by animateColorAsState(
-        targetValue = if (isPressed) extendedColors.signalGlow else MaterialTheme.colorScheme.surfaceVariant,
-        animationSpec = tween(160),
-        label = "tap_glow",
-    )
-
-    LaunchedEffect(isPressed, pressStartedAt) {
-        while (isPressed) {
-            holdDurationMs = SystemClock.elapsedRealtime() - pressStartedAt
-            delay(16L)
-        }
-        holdDurationMs = 0L
-    }
-
-    fun startPress() {
-        if (isPressed) return
-        pressStartedAt = SystemClock.elapsedRealtime()
-        isPressed = true
-    }
-
-    fun endPress() {
-        if (!isPressed) return
-        val duration = (SystemClock.elapsedRealtime() - pressStartedAt).coerceAtLeast(1L)
-        isPressed = false
-        composer.recordPress(duration)
-        onAnswerChanged(composer.answer)
-    }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(24.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(spacing.md),
-        ) {
-            Text("Expected rhythm", style = MaterialTheme.typography.labelLarge)
-            GhostPatternRow(
-                expectedPattern = expectedPattern,
-                currentAnswer = composer.answer,
-                firstMismatchIndex = composer.firstMismatchIndex,
-            )
-
-            TimelineRow(composer = composer)
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .border(
-                        width = if (holdDurationMs >= dashThreshold) 4.dp else 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(28.dp),
-                    )
-                    .background(animatedGlow, RoundedCornerShape(28.dp))
-                    .focusable()
-                    .onPreviewKeyEvent { event ->
-                        if (event.key != Key.Spacebar) return@onPreviewKeyEvent false
-                        when (event.type) {
-                            KeyEventType.KeyDown -> {
-                                if (!keyboardPressed) {
-                                    keyboardPressed = true
-                                    startPress()
-                                }
-                                true
-                            }
-                            KeyEventType.KeyUp -> {
-                                keyboardPressed = false
-                                endPress()
-                                true
-                            }
-                            else -> false
-                        }
-                    }
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
-                            startPress()
-                            waitForUpOrCancellation()
-                            endPress()
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                val fillScale = (holdDurationMs.toFloat() / (dashThreshold * 2f)).coerceIn(0.4f, 1.15f)
-                Box(
-                    modifier = Modifier
-                        .size((72f * fillScale).dp)
-                        .background(
-                            color = extendedColors.signalActive.copy(alpha = if (isPressed) 0.24f else 0.08f),
-                            shape = CircleShape,
-                        ),
-                )
-                Text(
-                    text = if (isPressed) "Signal live" else "Tap or hold to send Morse",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-
-            Text(
-                text = composer.answer.ifBlank { "No signal captured yet" },
-                style = MorseDisplayTextStyle,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-@Composable
-private fun GhostPatternRow(
-    expectedPattern: String,
-    currentAnswer: String,
-    firstMismatchIndex: Int,
-) {
-    val spacing = LocalSpacing.current
-    val extendedColors = LocalExtendedColors.current
-
-    Row(horizontalArrangement = Arrangement.spacedBy(spacing.xs)) {
-        expectedPattern.forEachIndexed { index, symbol ->
-            val matched = currentAnswer.getOrNull(index) == symbol
-            val mismatched = firstMismatchIndex == index
-            val width = if (symbol == '.') 18.dp else 40.dp
-            val background = when {
-                mismatched -> MaterialTheme.colorScheme.errorContainer
-                matched -> extendedColors.signalActive.copy(alpha = 0.85f)
-                else -> MaterialTheme.colorScheme.surfaceContainer
-            }
-
-            Box(
-                modifier = Modifier
-                    .width(width)
-                    .height(12.dp)
-                    .background(background, RoundedCornerShape(999.dp))
-                    .border(
-                        width = 1.dp,
-                        color = if (mismatched) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(999.dp),
-                    ),
-            )
-        }
-    }
-}
-
-@Composable
-private fun TimelineRow(composer: MorseTapComposer) {
-    val spacing = LocalSpacing.current
-    val scrollState = rememberScrollState()
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
-    ) {
-        composer.segments.takeLast(12).forEach { segment ->
-            Box(
-                modifier = Modifier
-                    .width(if (segment.symbol == '.') 24.dp else 48.dp)
-                    .height(16.dp)
-                    .background(
-                        color = if (segment.matchesHint) {
-                            LocalExtendedColors.current.signalActive.copy(alpha = 0.9f)
-                        } else {
-                            MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                        },
-                        shape = RoundedCornerShape(999.dp),
-                    ),
-            )
-        }
     }
 }
 
@@ -588,15 +284,20 @@ private fun ResultCard(state: PracticeViewModel.UiState.Exercise) {
                 color = accent,
             )
             if (!isCorrect) {
-                Text(
-                    text = "Expected answer",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = state.result?.expectedText.orEmpty(),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                val result = state.result
+                if (result != null) {
+                    Text(
+                        text = "Expected: ${result.expectedText}",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    if (result.expectedAnswer != result.expectedText) {
+                        Text(
+                            text = result.expectedAnswer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }

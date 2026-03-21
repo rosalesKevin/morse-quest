@@ -1,5 +1,9 @@
 package morse.android.practice
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlin.reflect.KClass
 import morse.android.audio.IAudioPlayer
 import morse.android.haptics.IHapticsController
 import morse.android.persistence.IProgressRepository
@@ -46,6 +51,24 @@ class PracticeViewModel @Inject constructor(
     private var currentIndex = 0
     private var pendingAnswer = ""
 
+    var touchpadState: TouchpadState? by mutableStateOf(null)
+        private set
+
+    private val _hintVisibility = mutableStateMapOf(
+        Exercise.ListenAndIdentify::class to true,
+        Exercise.ReadAndTap::class to true,
+        Exercise.DecodeWord::class to true,
+        Exercise.EncodeWord::class to true,
+        Exercise.SpeedChallenge::class to true,
+    )
+
+    fun isHintVisible(type: KClass<out Exercise>): Boolean =
+        _hintVisibility[type] ?: true
+
+    fun toggleHint(type: KClass<out Exercise>) {
+        _hintVisibility[type] = !(_hintVisibility[type] ?: true)
+    }
+
     sealed class UiState {
         data class Exercise(
             val exercise: morse.practice.Exercise,
@@ -67,6 +90,7 @@ class PracticeViewModel @Inject constructor(
 
     init {
         autoPlayIfAudioExercise()
+        touchpadState = createTouchpadStateFor(session.exercises[currentIndex])
     }
 
     fun updateAnswer(answer: String) {
@@ -75,8 +99,14 @@ class PracticeViewModel @Inject constructor(
 
     fun submitAnswer() {
         val current = _uiState.value as? UiState.Exercise ?: return
-        val answer = pendingAnswer
+        val answer = when (current.exercise) {
+            is Exercise.ReadAndTap, is Exercise.EncodeWord -> touchpadState?.answer ?: ""
+            else -> pendingAnswer
+        }
         val result = session.submitAnswer(current.exercise, answer)
+        if (result.isCorrect) {
+            _hintVisibility[current.exercise::class] = false
+        }
         _uiState.value = current.copy(answer = answer, result = result)
     }
 
@@ -92,6 +122,7 @@ class PracticeViewModel @Inject constructor(
             _uiState.value = UiState.Summary(lesson, score, mistakes)
         } else {
             _uiState.value = exerciseState()
+            touchpadState = createTouchpadStateFor(session.exercises[currentIndex])
             autoPlayIfAudioExercise()
         }
     }
@@ -131,6 +162,11 @@ class PracticeViewModel @Inject constructor(
         is Exercise.DecodeWord -> MorseDecoder.decode(exercise.morse)
         is Exercise.SpeedChallenge -> exercise.text
         is Exercise.ReadAndTap, is Exercise.EncodeWord -> null
+    }
+
+    private fun createTouchpadStateFor(exercise: Exercise): TouchpadState? = when (exercise) {
+        is Exercise.ReadAndTap, is Exercise.EncodeWord -> TouchpadState(timingEngine)
+        else -> null
     }
 
     private fun resolveLesson(): Lesson = when (val config = launchConfig) {
