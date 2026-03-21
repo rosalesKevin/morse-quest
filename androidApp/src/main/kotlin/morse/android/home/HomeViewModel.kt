@@ -24,16 +24,27 @@ class HomeViewModel @Inject constructor(
         val overallAccuracy: Double = 0.0,
         val unlockedLessonCount: Int = 1,
         val totalLessons: Int = 0,
+        val bestWpm: Int = 0,
+        val bestAccuracy: Double = 0.0,
+        val longestStreakDays: Int = 0,
+        val focusCharacters: List<Char> = emptyList(),
+        val quickPracticeLessonId: String = "",
     )
 
     val uiState: StateFlow<UiState> = progressRepository.sessionHistory
         .map { sessions ->
             val tracker = progressRepository.buildTracker(sessions, lessons, timeProvider)
+            val summary = HomeSummaryCalculator.build(sessions, lessons, timeProvider)
             UiState(
                 streakDays = tracker.getStreakDays(),
                 overallAccuracy = tracker.getOverallAccuracy(),
                 unlockedLessonCount = tracker.getUnlockedLessons().size,
                 totalLessons = lessons.size,
+                bestWpm = summary.bestWpm,
+                bestAccuracy = summary.bestAccuracy,
+                longestStreakDays = summary.longestStreakDays,
+                focusCharacters = summary.focusCharacters,
+                quickPracticeLessonId = summary.quickPracticeLessonId,
             )
         }
         .stateIn(

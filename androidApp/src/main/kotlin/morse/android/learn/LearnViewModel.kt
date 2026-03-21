@@ -30,11 +30,18 @@ class LearnViewModel @Inject constructor(
     private val timeProvider: TimeProvider,
 ) : ViewModel() {
 
-    data class LessonItem(val lesson: Lesson, val isUnlocked: Boolean)
+    data class LessonItem(
+        val lesson: Lesson,
+        val visualState: LessonVisualState,
+        val masteryPercent: Int,
+    ) {
+        val isUnlocked: Boolean
+            get() = visualState != LessonVisualState.Locked
+    }
 
     sealed class UiState {
         data class LessonList(val lessons: List<LessonItem>) : UiState()
-        data class LessonDetail(val lesson: Lesson, val isUnlocked: Boolean) : UiState()
+        data class LessonDetail(val lessonItem: LessonItem) : UiState()
     }
 
     private val _selectedLesson = MutableStateFlow<Lesson?>(null)
@@ -43,12 +50,21 @@ class LearnViewModel @Inject constructor(
         progressRepository.sessionHistory,
         _selectedLesson,
     ) { sessions, selectedLesson ->
-        val tracker = progressRepository.buildTracker(sessions, lessons, timeProvider)
-        val unlockedIds = tracker.getUnlockedLessons().map { it.id }.toSet()
+        val lessonItems = LessonProgressMapper
+            .map(sessions = sessions, lessons = lessons, timeProvider = timeProvider)
+            .map { item ->
+                LessonItem(
+                    lesson = item.lesson,
+                    visualState = item.visualState,
+                    masteryPercent = item.masteryPercent,
+                )
+            }
         if (selectedLesson == null) {
-            UiState.LessonList(lessons.map { LessonItem(it, it.id in unlockedIds) })
+            UiState.LessonList(lessonItems)
         } else {
-            UiState.LessonDetail(selectedLesson, selectedLesson.id in unlockedIds)
+            UiState.LessonDetail(
+                lessonItems.first { it.lesson.id == selectedLesson.id }
+            )
         }
     }.stateIn(
         viewModelScope,

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -16,6 +17,8 @@ interface ISettingsRepository {
     suspend fun updateWpm(wpm: Int)
     suspend fun updateToneFrequency(hz: Float)
     suspend fun updateHapticsEnabled(enabled: Boolean)
+    suspend fun updateThemeMode(mode: ThemeMode)
+    suspend fun updateAudioProfile(profile: AudioProfile)
 }
 
 @Singleton
@@ -27,6 +30,8 @@ class SettingsRepository @Inject constructor(
         val WPM = intPreferencesKey("wpm")
         val TONE_HZ = floatPreferencesKey("tone_frequency_hz")
         val HAPTICS = booleanPreferencesKey("haptics_enabled")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val AUDIO_PROFILE = stringPreferencesKey("audio_profile")
     }
 
     override val settings: Flow<UserSettings> = dataStore.data.map { prefs ->
@@ -34,6 +39,8 @@ class SettingsRepository @Inject constructor(
             wpm = prefs[Keys.WPM] ?: 20,
             toneFrequencyHz = prefs[Keys.TONE_HZ] ?: 700f,
             hapticsEnabled = prefs[Keys.HAPTICS] ?: true,
+            themeMode = ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: ThemeMode.SYSTEM.name),
+            audioProfile = AudioProfile.valueOf(prefs[Keys.AUDIO_PROFILE] ?: AudioProfile.PURE.name)
         )
     }
 
@@ -47,5 +54,13 @@ class SettingsRepository @Inject constructor(
 
     override suspend fun updateHapticsEnabled(enabled: Boolean) {
         dataStore.edit { it[Keys.HAPTICS] = enabled }
+    }
+    
+    override suspend fun updateThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[Keys.THEME_MODE] = mode.name }
+    }
+
+    override suspend fun updateAudioProfile(profile: AudioProfile) {
+        dataStore.edit { it[Keys.AUDIO_PROFILE] = profile.name }
     }
 }

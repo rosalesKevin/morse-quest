@@ -9,7 +9,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -41,8 +46,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import morse.android.theme.LocalExtendedColors
+import morse.android.theme.LocalSpacing
+import morse.android.theme.MorseDisplayTextStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,9 +62,10 @@ fun AudioDecodeScreen(
     viewModel: AudioDecodeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val spacing = LocalSpacing.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
             viewModel.onPermissionGranted()
@@ -66,28 +78,55 @@ fun AudioDecodeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Decode Audio") },
+                title = { Text("Audio Decode") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = spacing.lg, vertical = spacing.xl)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(spacing.lg),
         ) {
-            ListeningIndicator(isListening = state.isListening)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(24.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.tertiaryContainer,
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                            ),
+                        )
+                        .padding(spacing.xl),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
+                        Text(
+                            text = "Capture a live tone source, inspect the Morse stream, and confirm the decoded text before it drifts.",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        ListeningIndicator(isListening = state.isListening)
+                    }
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
             ) {
                 if (!state.isListening) {
                     Button(
@@ -114,106 +153,213 @@ fun AudioDecodeScreen(
                 }
             }
 
-            Column {
-                Text(
-                    "Sensitivity: ${"%.0f".format(state.sensitivity * 100)}%",
-                    style = MaterialTheme.typography.labelMedium,
-                )
-                Slider(
-                    value = state.sensitivity,
-                    onValueChange = viewModel::updateSensitivity,
-                    valueRange = 0.01f..0.30f,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(spacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                ) {
+                    Text("Capture sensitivity", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "Raise sensitivity for quiet rooms. Lower it when ambient noise starts creating false positives.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Sensitivity: ${"%.0f".format(state.sensitivity * 100)}%",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Slider(
+                        value = state.sensitivity,
+                        onValueChange = viewModel::updateSensitivity,
+                        valueRange = 0.01f..0.30f,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
 
             AnimatedVisibility(visible = state.permissionDenied) {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "Microphone permission is required. Grant it in app settings.",
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                StatusCard(
+                    title = "Microphone permission required",
+                    body = "Grant microphone access so the decoder can capture tone events from the environment.",
+                    accent = MaterialTheme.colorScheme.error,
+                )
             }
 
             state.error?.let { error ->
-                Card(modifier = Modifier.fillMaxWidth()) {
+                StatusCard(
+                    title = "Capture error",
+                    body = error,
+                    accent = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+            ) {
+                DecodeOutputCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Morse stream",
+                    text = state.morseText,
+                    placeholder = "Waiting for tone events",
+                    textStyle = MorseDisplayTextStyle,
+                )
+                DecodeOutputCard(
+                    modifier = Modifier.weight(1f),
+                    label = "Decoded text",
+                    text = state.decodedText,
+                    placeholder = "Decoded output appears here",
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                )
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(spacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                ) {
+                    Text("Operator notes", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "Error: $error",
-                        modifier = Modifier.padding(12.dp),
+                        text = "If the Morse lane keeps smearing, lower sensitivity or move the device closer to the tone source before restarting capture.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            DecodeOutputCard(label = "Morse", text = state.morseText)
-            DecodeOutputCard(label = "Text", text = state.decodedText)
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.sm))
         }
     }
 }
 
 @Composable
 private fun ListeningIndicator(isListening: Boolean) {
+    val spacing = LocalSpacing.current
+    val extendedColors = LocalExtendedColors.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
         if (isListening) {
             val infiniteTransition = rememberInfiniteTransition(label = "pulse")
             val alpha by infiniteTransition.animateFloat(
                 initialValue = 1f,
-                targetValue = 0.2f,
+                targetValue = 0.25f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(600),
                     repeatMode = RepeatMode.Reverse,
                 ),
                 label = "alpha",
             )
-            Icon(
-                Icons.Default.Mic,
-                contentDescription = "Listening",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp).alpha(alpha),
-            )
-            Text(
-                "Listening…",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Surface(
+                color = extendedColors.signalAmber.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(999.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                ) {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = "Listening",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp).alpha(alpha),
+                    )
+                    Text(
+                        "Listening live",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         } else {
-            Icon(
-                Icons.Default.MicOff,
-                contentDescription = "Not listening",
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(20.dp),
-            )
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(999.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                ) {
+                    Icon(
+                        Icons.Default.MicOff,
+                        contentDescription = "Not listening",
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        "Microphone idle",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusCard(
+    title: String,
+    body: String,
+    accent: Color,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(LocalSpacing.current.lg),
+            verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.xs),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = accent)
             Text(
-                "Not listening",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.outline,
+                body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
 @Composable
-private fun DecodeOutputCard(label: String, text: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+private fun DecodeOutputCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    text: String,
+    placeholder: String,
+    textStyle: TextStyle,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(LocalSpacing.current.lg),
+            verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.sm),
+        ) {
             Text(
                 label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = text.ifEmpty { "—" },
-                style = MaterialTheme.typography.bodyLarge,
+                text = text.ifEmpty { placeholder },
+                style = if (text.isEmpty()) MaterialTheme.typography.bodyMedium else textStyle,
+                color = if (text.isEmpty()) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

@@ -12,4 +12,6 @@ class FakeSettingsRepository(
     override suspend fun updateWpm(wpm: Int) { _settings.value = _settings.value.copy(wpm = wpm) }
     override suspend fun updateToneFrequency(hz: Float) { _settings.value = _settings.value.copy(toneFrequencyHz = hz) }
     override suspend fun updateHapticsEnabled(enabled: Boolean) { _settings.value = _settings.value.copy(hapticsEnabled = enabled) }
+    override suspend fun updateThemeMode(mode: ThemeMode) { _settings.value = _settings.value.copy(themeMode = mode) }
+    override suspend fun updateAudioProfile(profile: AudioProfile) { _settings.value = _settings.value.copy(audioProfile = profile) }
 }
