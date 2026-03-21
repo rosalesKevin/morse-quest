@@ -21,8 +21,18 @@ kotlin {
             implementation(libs.ktor.client.websockets)
         }
 
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+
+        jsMain.dependencies {
+            implementation(libs.ktor.client.js)
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.turbine)
         }
     }
 
