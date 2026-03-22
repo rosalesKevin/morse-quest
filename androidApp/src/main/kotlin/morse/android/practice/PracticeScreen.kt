@@ -95,7 +95,18 @@ private fun ExerciseContent(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Practice ${state.index + 1} / ${state.total}") })
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(state.lesson.title)
+                        Text(
+                            text = "Practice ${state.index + 1} / ${state.total}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
         },
     ) { padding ->
         Column(
@@ -312,7 +323,20 @@ private fun SummaryContent(
     val spacing = LocalSpacing.current
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Session summary") }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(state.lesson.title)
+                        Text(
+                            text = "Session summary",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier

@@ -54,6 +54,7 @@ fun HomeScreen(
     onNavigateToReference: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAudioDecode: () -> Unit,
+    onNavigateToFreestyle: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -278,6 +279,13 @@ fun HomeScreen(
                 copy = "Listen to a live signal source through the microphone and watch the decoded stream settle in real time.",
                 cta = "Open Decoder",
                 onClick = onNavigateToAudioDecode,
+            )
+            ActionCard(
+                modifier = Modifier.fillMaxWidth(),
+                title = "Freestyle",
+                copy = "Tap Morse freely and watch the decoded text appear — no exercises, no scoring, just practice.",
+                cta = "Open Freestyle",
+                onClick = onNavigateToFreestyle,
             )
         }
     }

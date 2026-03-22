@@ -20,7 +20,17 @@ fun PracticePage(state: PracticePageState) {
                 state.currentExercise?.let {
                     Div(attrs = { classes("exercise-type") }) { Text(exerciseLabel(it)) }
                 }
-                Div(attrs = { classes("exercise-type muted") }) { Text(state.selectedLessonId ?: "No lesson selected") }
+                val lessonTitle = state.selectedLessonTitle
+                Div(
+                    attrs = {
+                        classes("exercise-type")
+                        if (lessonTitle == null) {
+                            classes("muted")
+                        }
+                    },
+                ) {
+                    Text(lessonTitle ?: "No lesson selected")
+                }
             }
             state.currentExercise?.let { exercise ->
                 H3 { Text(exercisePrompt(exercise)) }

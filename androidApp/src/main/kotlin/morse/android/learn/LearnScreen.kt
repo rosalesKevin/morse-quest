@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -325,6 +327,21 @@ private fun LessonDetailSheet(
     onPlayChar: (Char) -> Unit,
     onStartPractice: () -> Unit,
 ) {
+    LessonDetailSheetContent(
+        item = item,
+        allLessons = allLessons,
+        onPlayChar = onPlayChar,
+        onStartPractice = onStartPractice,
+    )
+}
+
+@Composable
+internal fun LessonDetailSheetContent(
+    item: LearnViewModel.LessonItem,
+    allLessons: List<LearnViewModel.LessonItem>,
+    onPlayChar: (Char) -> Unit,
+    onStartPractice: () -> Unit,
+) {
     val spacing = LocalSpacing.current
     val extendedColors = LocalExtendedColors.current
     val headerColor = when (item.visualState) {
@@ -334,107 +351,139 @@ private fun LessonDetailSheet(
         LessonVisualState.Locked -> MaterialTheme.colorScheme.surfaceContainer
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.lg)
-            .padding(bottom = spacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(spacing.lg),
     ) {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = headerColor),
-            shape = RoundedCornerShape(20.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxHeight * 0.92f)
+                .padding(bottom = spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(spacing.lg),
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                    .weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(spacing.lg),
             ) {
-                Text(item.lesson.title, style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    text = item.lesson.characters.joinToString(" ") { it.toString() },
-                    style = MaterialTheme.typography.displayLarge,
-                )
-                Text(
-                    text = item.lesson.characters.joinToString("  ") {
-                        MorseAlphabet.characters[it].orEmpty()
-                    },
-                    style = MorseInlineTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                lessonInfoLines(item.lesson).forEach { info ->
-                    Text(
-                        text = info,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (item.visualState != LessonVisualState.Locked) {
-                    LinearProgressIndicator(
-                        progress = { item.masteryPercent / 100f },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        }
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            shape = RoundedCornerShape(20.dp),
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                item.lesson.characters.forEachIndexed { index, char ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.lg, vertical = spacing.md),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = headerColor),
+                        shape = RoundedCornerShape(20.dp),
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(spacing.xxs)) {
-                            Text(char.toString(), style = MaterialTheme.typography.titleLarge)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.xl),
+                            verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                        ) {
+                            Text(item.lesson.title, style = MaterialTheme.typography.headlineMedium)
                             Text(
-                                text = MorseAlphabet.characters[char].orEmpty(),
+                                text = item.lesson.characters.joinToString(" ") { it.toString() },
+                                style = MaterialTheme.typography.displayLarge,
+                            )
+                            Text(
+                                text = item.lesson.characters.joinToString("  ") {
+                                    MorseAlphabet.characters[it].orEmpty()
+                                },
                                 style = MorseInlineTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
-                        IconButton(onClick = { onPlayChar(char) }) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Play $char")
+                            lessonInfoLines(item.lesson).forEach { info ->
+                                Text(
+                                    text = info,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (item.visualState != LessonVisualState.Locked) {
+                                LinearProgressIndicator(
+                                    progress = { item.masteryPercent / 100f },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
                         }
                     }
-                    if (index != item.lesson.characters.lastIndex) {
-                        HorizontalDivider()
+                }
+
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            item.lesson.characters.forEachIndexed { index, char ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.lg, vertical = spacing.md),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(spacing.xxs)) {
+                                        Text(char.toString(), style = MaterialTheme.typography.titleLarge)
+                                        Text(
+                                            text = MorseAlphabet.characters[char].orEmpty(),
+                                            style = MorseInlineTextStyle,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    IconButton(onClick = { onPlayChar(char) }) {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = "Play $char")
+                                    }
+                                }
+                                if (index != item.lesson.characters.lastIndex) {
+                                    HorizontalDivider()
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        if (item.isUnlocked) {
-            Button(
-                onClick = onStartPractice,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Start Practice")
-            }
-        } else {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(20.dp),
-            ) {
-                Text(
-                    text = unlockRequirement(item.lesson, allLessons),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.lg),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+            LessonDetailFooter(
+                item = item,
+                allLessons = allLessons,
+                onStartPractice = onStartPractice,
+            )
 
-        Spacer(modifier = Modifier.height(spacing.sm))
+            Spacer(modifier = Modifier.height(spacing.sm))
+        }
+    }
+}
+
+@Composable
+private fun LessonDetailFooter(
+    item: LearnViewModel.LessonItem,
+    allLessons: List<LearnViewModel.LessonItem>,
+    onStartPractice: () -> Unit,
+) {
+    val spacing = LocalSpacing.current
+
+    if (item.isUnlocked) {
+        Button(
+            onClick = onStartPractice,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Start Practice")
+        }
+    } else {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(20.dp),
+        ) {
+            Text(
+                text = unlockRequirement(item.lesson, allLessons),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.lg),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

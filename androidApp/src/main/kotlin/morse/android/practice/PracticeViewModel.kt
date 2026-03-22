@@ -71,6 +71,7 @@ class PracticeViewModel @Inject constructor(
 
     sealed class UiState {
         data class Exercise(
+            val lesson: Lesson,
             val exercise: morse.practice.Exercise,
             val index: Int,
             val total: Int,
@@ -145,6 +146,7 @@ class PracticeViewModel @Inject constructor(
     }
 
     private fun exerciseState(): UiState.Exercise = UiState.Exercise(
+        lesson = lesson,
         exercise = session.exercises[currentIndex],
         index = currentIndex,
         total = session.exercises.size,

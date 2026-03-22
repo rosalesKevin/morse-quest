@@ -45,6 +45,10 @@ fun MorseTouchpad(
     state: TouchpadState,
     allowWordGap: Boolean,
     modifier: Modifier = Modifier,
+    onTap: ((Long) -> Unit)? = null,
+    onGapElapsed: ((GapType) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    forceShowDelete: Boolean = false,
 ) {
     var isPressed by remember { mutableStateOf(false) }
     var pressStartTime by remember { mutableLongStateOf(0L) }
@@ -54,16 +58,18 @@ fun MorseTouchpad(
     LaunchedEffect(lastReleaseTime, state.answer) {
         if (lastReleaseTime == 0L || state.answer.isEmpty()) return@LaunchedEffect
         delay(state.letterGapThresholdMs)
-        state.onGapElapsed(GapType.LETTER)
+        val gapHandler = onGapElapsed ?: { state.onGapElapsed(it) }
+        gapHandler(GapType.LETTER)
         if (!allowWordGap) return@LaunchedEffect
         delay(state.wordGapThresholdMs - state.letterGapThresholdMs)
-        state.onGapElapsed(GapType.WORD)
+        gapHandler(GapType.WORD)
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
         LiveFeedbackStrip(
             letterGroups = state.letterGroups,
-            onDelete = { state.deleteLast() },
+            onDelete = onDelete ?: { state.deleteLast() },
+            forceShowDelete = forceShowDelete,
         )
 
         Spacer(Modifier.height(12.dp))
@@ -85,6 +91,7 @@ fun MorseTouchpad(
                             isPressed = false
                             val duration = System.currentTimeMillis() - pressStartTime
                             state.recordPress(duration)
+                            onTap?.invoke(duration)
                             lastReleaseTime = System.currentTimeMillis()
                         },
                     )
@@ -105,6 +112,7 @@ private fun LiveFeedbackStrip(
     letterGroups: List<LetterGroup>,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    forceShowDelete: Boolean = false,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -150,7 +158,7 @@ private fun LiveFeedbackStrip(
             }
         }
 
-        if (letterGroups.isNotEmpty()) {
+        if (letterGroups.isNotEmpty() || forceShowDelete) {
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Default.Backspace,

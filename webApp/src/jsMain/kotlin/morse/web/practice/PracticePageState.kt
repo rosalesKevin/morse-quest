@@ -31,6 +31,12 @@ class PracticePageState(
     var selectedLessonId by mutableStateOf<String?>(null)
         private set
 
+    val selectedLesson: Lesson?
+        get() = lessons.firstOrNull { it.id == selectedLessonId }
+
+    val selectedLessonTitle: String?
+        get() = selectedLesson?.title
+
     var currentExercise by mutableStateOf<Exercise?>(null)
         private set
 
@@ -91,7 +97,7 @@ class PracticePageState(
 
     fun nextExercise() {
         val activeSession = session ?: return
-        val lesson = lessons.firstOrNull { it.id == selectedLessonId } ?: return
+        val lesson = selectedLesson ?: return
         if (result == null) {
             return
         }

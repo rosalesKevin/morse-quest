@@ -103,6 +103,14 @@ class PracticeViewModelTest {
     }
 
     @Test
+    fun `initial exercise state exposes lesson for persistent header`() = runTest {
+        val state = viewModel().uiState.value as PracticeViewModel.UiState.Exercise
+
+        assertEquals(lesson.id, state.lesson.id)
+        assertEquals(lesson.title, state.lesson.title)
+    }
+
+    @Test
     fun `total exercise count matches lesson exercises`() = runTest {
         viewModel().uiState.test {
             val state = awaitItem() as PracticeViewModel.UiState.Exercise

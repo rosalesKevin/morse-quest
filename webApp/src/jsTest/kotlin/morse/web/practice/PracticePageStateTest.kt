@@ -11,6 +11,23 @@ import kotlin.test.assertTrue
 class PracticePageStateTest {
 
     @Test
+    fun selectingLessonExposesTitleForPersistentHeader() {
+        val lesson = singleExerciseLesson()
+        val dependencies = createTestDependencies(lessons = listOf(lesson))
+        val state = PracticePageState(
+            lessons = dependencies.lessons,
+            progressRepository = dependencies.progressRepository,
+            settingsRepository = dependencies.settingsRepository,
+            audioPlayer = dependencies.audioPlayer,
+            timeProvider = dependencies.timeProvider,
+        )
+
+        state.setLesson(lesson.id)
+
+        assertEquals(lesson.title, state.selectedLessonTitle)
+    }
+
+    @Test
     fun completesLessonAndRecordsProgress() {
         val lesson = singleExerciseLesson()
         val dependencies = createTestDependencies(lessons = listOf(lesson))
