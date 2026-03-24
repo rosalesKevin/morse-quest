@@ -5,6 +5,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import morse.android.persistence.FakeProgressRepository
 import morse.android.persistence.FakeSettingsRepository
+import morse.android.persistence.StoredSession
 import morse.android.persistence.UserSettings
 import morse.android.util.MainDispatcherRule
 import morse.practice.LessonCatalog
@@ -12,6 +13,7 @@ import morse.practice.TimeProvider
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
@@ -61,5 +63,31 @@ class HomeViewModelTest {
         vm.uiState.test {
             assertEquals(9, awaitItem().quickStartDefaultWpm)
         }
+    }
+
+    @Test
+    fun `quickPracticeLessonTitle is populated from most recently practiced session`() = runTest {
+        val session = StoredSession(
+            lessonId = lessons[1].id,
+            correct = 8,
+            total = 10,
+            wpm = 20.0,
+            mistakes = emptyList(),
+            recordedAtEpochMillis = fixedTime,
+        )
+        val repo = FakeProgressRepository(sessions = listOf(session))
+        val vm = HomeViewModel(repo, FakeSettingsRepository(), lessons, timeProvider)
+
+        vm.uiState.test {
+            val state = awaitItem()
+            assertEquals(lessons[1].title, state.quickPracticeLessonTitle)
+        }
+    }
+
+    @Test
+    fun `home ui state no longer exposes deprecated recommended level`() {
+        val fieldNames = HomeViewModel.UiState::class.java.declaredFields.map { it.name }
+
+        assertFalse(fieldNames.contains("recommendedLevel"))
     }
 }

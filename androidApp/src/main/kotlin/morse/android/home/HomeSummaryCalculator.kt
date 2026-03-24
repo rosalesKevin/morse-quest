@@ -7,17 +7,12 @@ import morse.practice.TimeProvider
 
 data class HomeSummary(
     val quickPracticeLessonId: String,
+    val quickPracticeLessonTitle: String,
     val bestWpm: Int,
     val bestAccuracy: Double,
     val longestStreakDays: Int,
     val focusCharacters: List<Char>,
-    val recommendedLevel: HomeSkillLevel,
 )
-
-enum class HomeSkillLevel {
-    BEGINNER,
-    INTERMEDIATE,
-}
 
 object HomeSummaryCalculator {
 
@@ -28,26 +23,25 @@ object HomeSummaryCalculator {
     ): HomeSummary {
         val tracker = LearnTracking.buildTracker(sessions, lessons, timeProvider)
         val bestSession = sessions.maxByOrNull { accuracy(it) }
+
+        val quickPracticeLessonId = sessions
+            .maxByOrNull { it.recordedAtEpochMillis }
+            ?.lessonId
+            ?: (tracker.unlockedLessons.firstOrNull()?.id ?: lessons.firstOrNull()?.id.orEmpty())
+
+        val quickPracticeLessonTitle = lessons
+            .firstOrNull { it.id == quickPracticeLessonId }
+            ?.title
+            .orEmpty()
+
         return HomeSummary(
-            quickPracticeLessonId = tracker.unlockedLessons.firstOrNull()?.id ?: lessons.firstOrNull()?.id.orEmpty(),
+            quickPracticeLessonId = quickPracticeLessonId,
+            quickPracticeLessonTitle = quickPracticeLessonTitle,
             bestWpm = sessions.maxOfOrNull { it.wpm.roundToInt() } ?: 0,
             bestAccuracy = bestSession?.let(::accuracy) ?: 0.0,
             longestStreakDays = longestStreakDays(sessions),
             focusCharacters = tracker.weakCharacters.take(3),
-            recommendedLevel = recommendedLevel(
-                unlockedLessonCount = tracker.unlockedLessons.size,
-                bestAccuracy = bestSession?.let(::accuracy) ?: 0.0,
-            ),
         )
-    }
-
-    private fun recommendedLevel(
-        unlockedLessonCount: Int,
-        bestAccuracy: Double,
-    ): HomeSkillLevel = if (unlockedLessonCount >= 2 || bestAccuracy >= 90.0) {
-        HomeSkillLevel.INTERMEDIATE
-    } else {
-        HomeSkillLevel.BEGINNER
     }
 
     private fun accuracy(session: StoredSession): Double =

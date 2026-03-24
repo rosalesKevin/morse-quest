@@ -31,8 +31,8 @@ class HomeViewModel @Inject constructor(
         val longestStreakDays: Int = 0,
         val focusCharacters: List<Char> = emptyList(),
         val quickPracticeLessonId: String = "",
+        val quickPracticeLessonTitle: String = "",
         val quickStartDefaultWpm: Int = 20,
-        val recommendedLevel: HomeSkillLevel = HomeSkillLevel.BEGINNER,
     )
 
     val uiState: StateFlow<UiState> = combine(
@@ -51,8 +51,8 @@ class HomeViewModel @Inject constructor(
                 longestStreakDays = summary.longestStreakDays,
                 focusCharacters = summary.focusCharacters,
                 quickPracticeLessonId = summary.quickPracticeLessonId,
+                quickPracticeLessonTitle = summary.quickPracticeLessonTitle,
                 quickStartDefaultWpm = settings.wpm,
-                recommendedLevel = summary.recommendedLevel,
             )
         }
         .stateIn(

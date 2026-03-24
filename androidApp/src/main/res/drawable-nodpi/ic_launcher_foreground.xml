@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Left Dot (Black) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 30,54 m -8,0 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0" />
+        
+    <!-- Center Dash Left Half (Black) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 42,47 h 12 v 14 h -12 z" />
+        
+    <!-- Center Dash Right Half (Red) -->
+    <path
+        android:fillColor="#BA1A1A"
+        android:pathData="M 54,47 h 12 v 14 h -12 z" />
+        
+    <!-- Right Dot (Red) -->
+    <path
+        android:fillColor="#BA1A1A"
+        android:pathData="M 78,54 m -8,0 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0" />
+
+</vector>

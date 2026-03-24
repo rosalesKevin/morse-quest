@@ -5,18 +5,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -26,15 +32,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,7 +72,6 @@ fun HomeScreen(
     val showQuickStartSheet = remember { mutableStateOf(false) }
     val selectedDifficulty = remember { mutableStateOf(QuickStartDifficulty.EASY) }
     val selectedWpm = remember { mutableIntStateOf(state.quickStartDefaultWpm) }
-    var selectedLevel by remember(state.recommendedLevel) { mutableStateOf(state.recommendedLevel) }
 
     Scaffold(
         topBar = {
@@ -104,24 +112,29 @@ fun HomeScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(spacing.md)) {
                         Text(
-                            text = "Start where you are",
+                            text = "Lessons",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            text = "A simpler practice space for building Morse confidence.",
-                            style = MaterialTheme.typography.displayLarge,
+                            text = "Learn Morse, one step at a time",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                         Text(
-                            text = "Pick a learning level, start a session, and keep your progress visible without filling the screen with extra controls.",
-                            style = MaterialTheme.typography.bodyLarge,
+                            text = "Each lesson adds a new character. Go at your own pace.",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        LevelSelector(
-                            selectedLevel = selectedLevel,
-                            onSelectLevel = { selectedLevel = it },
-                        )
+                        if (state.quickPracticeLessonId.isNotBlank() && state.quickPracticeLessonTitle.isNotBlank()) {
+                            ContinueBanner(
+                                lessonTitle = state.quickPracticeLessonTitle,
+                                onClick = {
+                                    onNavigateToPractice(PracticeLaunchConfig.lesson(state.quickPracticeLessonId))
+                                },
+                            )
+                        }
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(spacing.sm),
                         ) {
@@ -139,6 +152,16 @@ fun HomeScreen(
                     }
                 }
             }
+
+            FreestyleCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onNavigateToFreestyle,
+            )
+
+            ReferenceCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onNavigateToReference,
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -192,10 +215,7 @@ fun HomeScreen(
                 ) {
                     Text("Progress summary", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = when (selectedLevel) {
-                            HomeSkillLevel.BEGINNER -> "Beginner focus keeps practice lighter and closer to your earliest unlocked characters."
-                            HomeSkillLevel.INTERMEDIATE -> "Intermediate focus assumes you are comfortable enough to push speed and recognition a bit harder."
-                        },
+                        text = "Your recent results, best accuracy, and streak are collected here so you can gauge whether to keep reinforcing symbols or push the pace in your next session.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -254,38 +274,12 @@ fun HomeScreen(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.md),
-            ) {
-                ActionCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Learn",
-                    copy = "Follow the lesson path and open each lesson as a lightweight study sheet.",
-                    cta = "Browse lessons",
-                    onClick = onNavigateToLearn,
-                )
-                ActionCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Reference",
-                    copy = "Use the alphabet and number sheet for quick lookups and instant playback.",
-                    cta = "Open",
-                    onClick = onNavigateToReference,
-                )
-            }
             ActionCard(
                 modifier = Modifier.fillMaxWidth(),
                 title = "Audio Decode",
                 copy = "Listen to a live signal source through the microphone and watch the decoded stream settle in real time.",
                 cta = "Open Decoder",
                 onClick = onNavigateToAudioDecode,
-            )
-            ActionCard(
-                modifier = Modifier.fillMaxWidth(),
-                title = "Freestyle",
-                copy = "Tap Morse freely and watch the decoded text appear — no exercises, no scoring, just practice.",
-                cta = "Open Freestyle",
-                onClick = onNavigateToFreestyle,
             )
         }
     }
@@ -310,31 +304,6 @@ fun HomeScreen(
                     )
                 },
             )
-        }
-    }
-}
-
-@Composable
-private fun LevelSelector(
-    selectedLevel: HomeSkillLevel,
-    onSelectLevel: (HomeSkillLevel) -> Unit,
-) {
-    val spacing = LocalSpacing.current
-
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
-        Text("Learning level", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            HomeSkillLevel.entries.forEach { level ->
-                FilterChip(
-                    selected = selectedLevel == level,
-                    onClick = { onSelectLevel(level) },
-                    label = {
-                        Text(
-                            if (level == HomeSkillLevel.BEGINNER) "Beginner" else "Intermediate",
-                        )
-                    },
-                )
-            }
         }
     }
 }
@@ -477,6 +446,189 @@ private fun QuickStartSheet(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Start session")
+        }
+    }
+}
+
+@Composable
+private fun FreestyleCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val extendedColors = LocalExtendedColors.current
+    val spacing = LocalSpacing.current
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column {
+            // Amber top stripe
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(extendedColors.rewardAmber),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.lg),
+            ) {
+                // Decorative background text
+                Text(
+                    text = "· — · —",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = extendedColors.rewardAmber.copy(alpha = 0.12f),
+                    modifier = Modifier.align(Alignment.TopEnd),
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                    Text(
+                        text = "Freestyle",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = extendedColors.rewardAmber,
+                    )
+                    Text(
+                        text = "Tap freely, hear what you send",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "No lessons, no scoring. Just you and the key.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = onClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = extendedColors.rewardAmber,
+                            contentColor = Color(0xFF1C1C1E),
+                        ),
+                        modifier = Modifier.padding(top = spacing.xs),
+                    ) {
+                        Text("Open Freestyle →", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReferenceCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val spacing = LocalSpacing.current
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column {
+            // Secondary top stripe
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(MaterialTheme.colorScheme.secondary),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.lg),
+            ) {
+                // Decorative icon top-right
+                Icon(
+                    imageVector = Icons.Outlined.MenuBook,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.20f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = spacing.xs),
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                    Text(
+                        text = "Reference",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                    Text(
+                        text = "The full Morse alphabet",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Look up any letter or number and hear how it sounds.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = onClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary,
+                        ),
+                        modifier = Modifier.padding(top = spacing.xs),
+                    ) {
+                        Text("Open Reference →", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContinueBanner(
+    lessonTitle: String,
+    onClick: () -> Unit,
+) {
+    val spacing = LocalSpacing.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Left accent bar
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = spacing.md, vertical = spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(spacing.xxs),
+        ) {
+            Text(
+                text = "Continue from",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = lessonTitle,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        TextButton(onClick = onClick) {
+            Text(
+                text = "Resume →",
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
