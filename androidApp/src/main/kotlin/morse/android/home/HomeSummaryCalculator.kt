@@ -6,8 +6,12 @@ import morse.practice.Lesson
 import morse.practice.TimeProvider
 
 data class HomeSummary(
-    val quickPracticeLessonId: String,
-    val quickPracticeLessonTitle: String,
+    val currentPathLessonId: String,
+    val currentPathLessonTitle: String,
+    val lastPracticedLessonId: String,
+    val lastPracticedLessonTitle: String,
+    val nextLessonId: String,
+    val nextLessonTitle: String,
     val bestWpm: Int,
     val bestAccuracy: Double,
     val longestStreakDays: Int,
@@ -23,26 +27,43 @@ object HomeSummaryCalculator {
     ): HomeSummary {
         val tracker = LearnTracking.buildTracker(sessions, lessons, timeProvider)
         val bestSession = sessions.maxByOrNull { accuracy(it) }
+        val unlockedLessons = tracker.unlockedLessons
 
-        val quickPracticeLessonId = sessions
+        val currentPathLessonId = unlockedLessons
+            .lastOrNull()
+            ?.id
+            ?: lessons.firstOrNull()?.id.orEmpty()
+        val currentPathLessonTitle = titleFor(lessons, currentPathLessonId)
+
+        val lastPracticedLessonId = sessions
             .maxByOrNull { it.recordedAtEpochMillis }
             ?.lessonId
-            ?: (tracker.unlockedLessons.firstOrNull()?.id ?: lessons.firstOrNull()?.id.orEmpty())
-
-        val quickPracticeLessonTitle = lessons
-            .firstOrNull { it.id == quickPracticeLessonId }
-            ?.title
             .orEmpty()
+        val lastPracticedLessonTitle = titleFor(lessons, lastPracticedLessonId)
+
+        val nextLessonId = lessons
+            .indexOfFirst { it.id == currentPathLessonId }
+            .takeIf { it >= 0 }
+            ?.let { index -> lessons.getOrNull(index + 1)?.id }
+            .orEmpty()
+        val nextLessonTitle = titleFor(lessons, nextLessonId)
 
         return HomeSummary(
-            quickPracticeLessonId = quickPracticeLessonId,
-            quickPracticeLessonTitle = quickPracticeLessonTitle,
+            currentPathLessonId = currentPathLessonId,
+            currentPathLessonTitle = currentPathLessonTitle,
+            lastPracticedLessonId = lastPracticedLessonId,
+            lastPracticedLessonTitle = lastPracticedLessonTitle,
+            nextLessonId = nextLessonId,
+            nextLessonTitle = nextLessonTitle,
             bestWpm = sessions.maxOfOrNull { it.wpm.roundToInt() } ?: 0,
             bestAccuracy = bestSession?.let(::accuracy) ?: 0.0,
             longestStreakDays = longestStreakDays(sessions),
             focusCharacters = tracker.weakCharacters.take(3),
         )
     }
+
+    private fun titleFor(lessons: List<Lesson>, lessonId: String): String =
+        lessons.firstOrNull { it.id == lessonId }?.title.orEmpty()
 
     private fun accuracy(session: StoredSession): Double =
         if (session.total == 0) 0.0 else (session.correct.toDouble() / session.total.toDouble()) * 100.0

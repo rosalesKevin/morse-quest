@@ -5,55 +5,59 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import morse.android.practice.PracticeLaunchConfig
-import morse.android.practice.QuickStartDifficulty
+import morse.android.quest.DailyQuestViewModel
 import morse.android.theme.LocalExtendedColors
 import morse.android.theme.LocalSpacing
 import morse.android.theme.MorseInlineTextStyle
 import morse.android.theme.StatValueTextStyle
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,22 +68,44 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToAudioDecode: () -> Unit,
     onNavigateToFreestyle: () -> Unit,
+    onNavigateToDailyQuest: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
     val spacing = LocalSpacing.current
     val extendedColors = LocalExtendedColors.current
-    val showQuickStartSheet = remember { mutableStateOf(false) }
-    val selectedDifficulty = remember { mutableStateOf(QuickStartDifficulty.EASY) }
-    val selectedWpm = remember { mutableIntStateOf(state.quickStartDefaultWpm) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Home") },
+            CenterAlignedTopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = "MORSE",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 2.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "QUEST",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Light,
+                            letterSpacing = 2.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                },
                 actions = {
-                    TextButton(onClick = onNavigateToSettings) {
-                        Text("Settings")
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                        )
                     }
                 },
             )
@@ -127,22 +153,18 @@ fun HomeScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        if (state.quickPracticeLessonId.isNotBlank() && state.quickPracticeLessonTitle.isNotBlank()) {
-                            ContinueBanner(
-                                lessonTitle = state.quickPracticeLessonTitle,
+                        LessonPathPanel(
+                            currentPathLessonTitle = state.currentPathLessonTitle,
+                            lastPracticedLessonTitle = state.lastPracticedLessonTitle,
+                            nextLessonTitle = state.nextLessonTitle,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                            Button(
                                 onClick = {
-                                    onNavigateToPractice(PracticeLaunchConfig.lesson(state.quickPracticeLessonId))
+                                    onNavigateToPractice(PracticeLaunchConfig.lesson(state.currentPathLessonId))
                                 },
-                            )
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-                        ) {
-                            Button(onClick = {
-                                selectedDifficulty.value = QuickStartDifficulty.EASY
-                                selectedWpm.intValue = state.quickStartDefaultWpm
-                                showQuickStartSheet.value = true
-                            }) {
+                                enabled = state.currentPathLessonId.isNotBlank(),
+                            ) {
                                 Text("Start Practicing")
                             }
                             OutlinedButton(onClick = onNavigateToLearn) {
@@ -152,6 +174,12 @@ fun HomeScreen(
                     }
                 }
             }
+
+            DailyQuestCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onNavigateToDailyQuest,
+                completedToday = state.dailyQuestCompleted,
+            )
 
             FreestyleCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -283,29 +311,6 @@ fun HomeScreen(
             )
         }
     }
-
-    if (showQuickStartSheet.value) {
-        ModalBottomSheet(
-            onDismissRequest = { showQuickStartSheet.value = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            QuickStartSheet(
-                selectedDifficulty = selectedDifficulty.value,
-                selectedWpm = selectedWpm.intValue,
-                onSelectDifficulty = { selectedDifficulty.value = it },
-                onWpmChanged = { selectedWpm.intValue = it },
-                onStart = {
-                    showQuickStartSheet.value = false
-                    onNavigateToPractice(
-                        PracticeLaunchConfig.quickStart(
-                            difficulty = selectedDifficulty.value,
-                            wpmOverride = selectedWpm.intValue,
-                        ),
-                    )
-                },
-            )
-        }
-    }
 }
 
 @Composable
@@ -314,7 +319,7 @@ private fun StatCard(
     label: String,
     value: String,
     supporting: String,
-    accent: androidx.compose.ui.graphics.Color,
+    accent: Color,
 ) {
     Card(
         modifier = modifier.height(132.dp),
@@ -350,7 +355,7 @@ private fun BestMetric(
     modifier: Modifier = Modifier,
     label: String,
     value: String,
-    accent: androidx.compose.ui.graphics.Color,
+    accent: Color,
 ) {
     Column(
         modifier = modifier,
@@ -401,56 +406,6 @@ private fun ActionCard(
 }
 
 @Composable
-private fun QuickStartSheet(
-    selectedDifficulty: QuickStartDifficulty,
-    selectedWpm: Int,
-    onSelectDifficulty: (QuickStartDifficulty) -> Unit,
-    onWpmChanged: (Int) -> Unit,
-    onStart: () -> Unit,
-) {
-    val spacing = LocalSpacing.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = spacing.lg)
-            .padding(bottom = spacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(spacing.lg),
-    ) {
-        Text("Quick Start", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            text = "Start slower and build up as your ear adjusts. This only changes the session you are about to start.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            QuickStartDifficulty.entries.forEach { difficulty ->
-                FilterChip(
-                    selected = selectedDifficulty == difficulty,
-                    onClick = { onSelectDifficulty(difficulty) },
-                    label = { Text(difficulty.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                )
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
-            Text("Playback speed: $selectedWpm WPM", style = MaterialTheme.typography.titleMedium)
-            Slider(
-                value = selectedWpm.toFloat(),
-                onValueChange = { onWpmChanged(it.toInt()) },
-                valueRange = 5f..40f,
-                steps = 34,
-            )
-        }
-        Button(
-            onClick = onStart,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Start session")
-        }
-    }
-}
-
-@Composable
 private fun FreestyleCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -464,7 +419,6 @@ private fun FreestyleCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column {
-            // Amber top stripe
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -476,9 +430,8 @@ private fun FreestyleCard(
                     .fillMaxWidth()
                     .padding(spacing.lg),
             ) {
-                // Decorative background text
                 Text(
-                    text = "· — · —",
+                    text = ". - . -",
                     style = MaterialTheme.typography.displayLarge,
                     color = extendedColors.rewardAmber.copy(alpha = 0.12f),
                     modifier = Modifier.align(Alignment.TopEnd),
@@ -508,7 +461,7 @@ private fun FreestyleCard(
                         ),
                         modifier = Modifier.padding(top = spacing.xs),
                     ) {
-                        Text("Open Freestyle →", fontWeight = FontWeight.Bold)
+                        Text("Open Freestyle ->", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -529,7 +482,6 @@ private fun ReferenceCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column {
-            // Secondary top stripe
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -541,9 +493,8 @@ private fun ReferenceCard(
                     .fillMaxWidth()
                     .padding(spacing.lg),
             ) {
-                // Decorative icon top-right
                 Icon(
-                    imageVector = Icons.Outlined.MenuBook,
+                    imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.20f),
                     modifier = Modifier
@@ -575,7 +526,7 @@ private fun ReferenceCard(
                         ),
                         modifier = Modifier.padding(top = spacing.xs),
                     ) {
-                        Text("Open Reference →", fontWeight = FontWeight.Bold)
+                        Text("Open Reference ->", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -584,51 +535,240 @@ private fun ReferenceCard(
 }
 
 @Composable
-private fun ContinueBanner(
-    lessonTitle: String,
-    onClick: () -> Unit,
+private fun LessonPathPanel(
+    currentPathLessonTitle: String,
+    lastPracticedLessonTitle: String,
+    nextLessonTitle: String,
 ) {
     val spacing = LocalSpacing.current
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.18f)),
     ) {
-        // Left accent bar
-        Box(
-            modifier = Modifier
-                .width(4.dp)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.primary),
-        )
         Column(
             modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = spacing.md, vertical = spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(spacing.xxs),
+                .fillMaxWidth()
+                .padding(spacing.md),
+            verticalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
-            Text(
-                text = "Continue from",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = lessonTitle,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            if (currentPathLessonTitle.isNotBlank()) {
+                Text(
+                    text = currentPathLessonTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+            ) {
+                LessonHint(
+                    modifier = Modifier.weight(1f),
+                    label = "Last practiced",
+                    value = lastPracticedLessonTitle.ifBlank { "Not started yet" },
+                )
+                LessonHint(
+                    modifier = Modifier.weight(1f),
+                    label = "Next lesson",
+                    value = nextLessonTitle.ifBlank { "All lessons unlocked" },
+                )
+            }
         }
-        TextButton(onClick = onClick) {
-            Text(
-                text = "Resume →",
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
+    }
+}
+
+@Composable
+private fun LessonHint(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.xxs),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun DailyQuestCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    completedToday: Boolean = false,
+    questViewModel: DailyQuestViewModel = hiltViewModel(),
+) {
+    val extendedColors = LocalExtendedColors.current
+    val spacing = LocalSpacing.current
+    val questState by questViewModel.uiState.collectAsState()
+    val quest = questState.quest
+    val isCompleted = completedToday || questState.isCompleted
+    val progressIndex = questState.progressIndex
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(extendedColors.exercisePurple),
             )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(spacing.lg),
+            ) {
+                // Progress ring top-end
+                if (quest != null) {
+                    val total = quest.questions.size
+                    val progress = if (isCompleted) 1f else progressIndex.toFloat() / total.toFloat()
+                    val ringColor = extendedColors.exercisePurple
+                    val trackColor = extendedColors.exercisePurple.copy(alpha = 0.15f)
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .align(Alignment.TopEnd)
+                            .drawBehind {
+                                val stroke = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
+                                drawArc(
+                                    color = trackColor,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f,
+                                    useCenter = false,
+                                    style = stroke,
+                                    topLeft = Offset(stroke.width / 2, stroke.width / 2),
+                                    size = Size(size.width - stroke.width, size.height - stroke.width),
+                                )
+                                drawArc(
+                                    color = ringColor,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * progress,
+                                    useCenter = false,
+                                    style = stroke,
+                                    topLeft = Offset(stroke.width / 2, stroke.width / 2),
+                                    size = Size(size.width - stroke.width, size.height - stroke.width),
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = if (isCompleted) "✓" else "${(progress * 100).roundToInt()}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = ringColor,
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                    Text(
+                        text = "Daily Quest",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = extendedColors.exercisePurple,
+                    )
+                    Text(
+                        text = "Today's Challenge",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+
+                    if (quest != null) {
+                        // Character chips
+                        val displayChars = quest.characters.take(10)
+                        val overflow = quest.characters.size - displayChars.size
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.xs)) {
+                            items(displayChars) { char ->
+                                Surface(
+                                    color = extendedColors.exercisePurple.copy(alpha = 0.10f),
+                                    shape = RoundedCornerShape(999.dp),
+                                ) {
+                                    Text(
+                                        text = char.toString(),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = extendedColors.exercisePurple,
+                                        modifier = Modifier.padding(horizontal = spacing.sm, vertical = spacing.xs),
+                                    )
+                                }
+                            }
+                            if (overflow > 0) {
+                                item {
+                                    Surface(
+                                        color = extendedColors.exercisePurple.copy(alpha = 0.10f),
+                                        shape = RoundedCornerShape(999.dp),
+                                    ) {
+                                        Text(
+                                            text = "+$overflow",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = extendedColors.exercisePurple,
+                                            modifier = Modifier.padding(horizontal = spacing.sm, vertical = spacing.xs),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "~${quest.estimatedMinutes} min  •  ${quest.questions.size} questions",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        if (quest.exerciseSummary.isNotEmpty()) {
+                            Text(
+                                text = quest.exerciseSummary.keys.joinToString("  ·  ") { kind ->
+                                    kind.name.lowercase().replaceFirstChar { it.uppercase() }
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    if (isCompleted) {
+                        Surface(
+                            color = extendedColors.success.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(999.dp),
+                        ) {
+                            Text(
+                                text = "✓ Completed",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = extendedColors.success,
+                                modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.xs),
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = onClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = extendedColors.exercisePurple,
+                                contentColor = Color.White,
+                            ),
+                            modifier = Modifier.padding(top = spacing.xs),
+                        ) {
+                            Text(
+                                text = if (progressIndex > 0) "Resume Quest ->" else "Start Quest ->",
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

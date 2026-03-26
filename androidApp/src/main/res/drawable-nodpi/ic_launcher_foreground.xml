@@ -4,25 +4,52 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    
-    <!-- Left Dot (Black) -->
+
+    <!-- Sword Pommel -->
     <path
-        android:fillColor="#000000"
-        android:pathData="M 30,54 m -8,0 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0" />
-        
-    <!-- Center Dash Left Half (Black) -->
+        android:strokeColor="#E4E8EE"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 54, 24 h 0.01" />
+
+    <!-- Sword Grip -->
     <path
-        android:fillColor="#000000"
-        android:pathData="M 42,47 h 12 v 14 h -12 z" />
-        
-    <!-- Center Dash Right Half (Red) -->
+        android:strokeColor="#E4E8EE"
+        android:strokeWidth="5"
+        android:pathData="M 54, 27 v 9" />
+
+    <!-- Sword Crossguard -->
     <path
-        android:fillColor="#BA1A1A"
-        android:pathData="M 54,47 h 12 v 14 h -12 z" />
-        
-    <!-- Right Dot (Red) -->
+        android:strokeColor="#E4E8EE"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 36, 39 h 36" />
+
+    <!-- Sword Blade Left Half -->
     <path
-        android:fillColor="#BA1A1A"
-        android:pathData="M 78,54 m -8,0 a 8,8 0 1,1 16,0 a 8,8 0 1,1 -16,0" />
+        android:fillColor="#E4E8EE"
+        android:pathData="M 49, 42 V 80 L 54, 89 V 42 Z" />
+
+    <!-- Sword Blade Right Half -->
+    <path
+        android:fillColor="#C7CDD6"
+        android:pathData="M 54, 42 V 89 L 59, 80 V 42 Z" />
+
+    <!-- Shield Left Half -->
+    <path
+        android:fillColor="#FFD60A"
+        android:pathData="M 54, 44 V 84 C 48, 81 36, 73 36, 62 V 49 Z" />
+
+    <!-- Shield Right Half -->
+    <path
+        android:fillColor="#FBBC04"
+        android:pathData="M 54, 44 L 72, 49 V 62 C 72, 73 60, 81 54, 84 Z" />
+
+    <!-- Morse Code ".-." (Cutout Effect) -->
+    <path
+        android:strokeColor="#0E0E10"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 41, 62 h 0.01 M 51, 62 h 6 M 67, 62 h 0.01" />
 
 </vector>

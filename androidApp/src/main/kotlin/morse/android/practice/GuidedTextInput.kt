@@ -62,7 +62,7 @@ fun SingleCharacterSlot(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            keyboardActions = KeyboardActions(onDone = { if (value.isNotEmpty()) onSubmit() }),
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .size(80.dp)
@@ -149,7 +149,7 @@ fun GuidedWordInput(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            keyboardActions = KeyboardActions(onDone = { if (value.isNotBlank()) onSubmit() }),
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .fillMaxWidth()

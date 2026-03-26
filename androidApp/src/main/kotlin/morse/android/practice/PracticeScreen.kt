@@ -84,6 +84,8 @@ private fun ExerciseContent(
     val spacing = LocalSpacing.current
     val keyboard = LocalSoftwareKeyboardController.current
     var localAnswer by rememberSaveable(state.index) { mutableStateOf(state.answer) }
+    var lessonGuideExpanded by rememberSaveable(state.lesson.id) { mutableStateOf(true) }
+    var showEmptyError by rememberSaveable(state.index) { mutableStateOf(false) }
 
     val config = remember(state.exercise) { ModeStripConfig.from(state.exercise) }
     val hintVisible = viewModel.isHintVisible(state.exercise::class)
@@ -142,6 +144,12 @@ private fun ExerciseContent(
 
             ExercisePrompt(exercise = state.exercise, onPlayAudio = onPlayAudio)
 
+            LessonReferenceGuide(
+                lesson = state.lesson,
+                expanded = lessonGuideExpanded,
+                onToggleExpanded = { lessonGuideExpanded = !lessonGuideExpanded },
+            )
+
             if (state.result == null) {
                 when (val exercise = state.exercise) {
                     is Exercise.ReadAndTap -> {
@@ -167,24 +175,52 @@ private fun ExerciseContent(
                             value = localAnswer,
                             onValueChange = {
                                 localAnswer = it
+                                showEmptyError = false
                                 onUpdateAnswer(it)
                             },
                             onSubmit = { keyboard?.hide(); onSubmit() },
                         )
+                        if (showEmptyError) {
+                            Text(
+                                text = "Enter a letter before submitting.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                     is Exercise.DecodeWord -> {
                         GuidedWordInput(
                             value = localAnswer,
                             onValueChange = {
                                 localAnswer = it
+                                showEmptyError = false
                                 onUpdateAnswer(it)
                             },
-                            onSubmit = { keyboard?.hide(); onSubmit() },
+                            onSubmit = {
+                                if (localAnswer.isBlank()) {
+                                    showEmptyError = true
+                                } else {
+                                    keyboard?.hide(); onSubmit()
+                                }
+                            },
                             expectedLength = exercise.answer.length,
                             placeholder = "Type the decoded word...",
                         )
+                        if (showEmptyError) {
+                            Text(
+                                text = "Type the decoded word before submitting.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         Button(
-                            onClick = { keyboard?.hide(); onSubmit() },
+                            onClick = {
+                                if (localAnswer.isBlank()) {
+                                    showEmptyError = true
+                                } else {
+                                    keyboard?.hide(); onSubmit()
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text("Submit") }
                     }
@@ -193,14 +229,34 @@ private fun ExerciseContent(
                             value = localAnswer,
                             onValueChange = {
                                 localAnswer = it
+                                showEmptyError = false
                                 onUpdateAnswer(it)
                             },
-                            onSubmit = { keyboard?.hide(); onSubmit() },
+                            onSubmit = {
+                                if (localAnswer.isBlank()) {
+                                    showEmptyError = true
+                                } else {
+                                    keyboard?.hide(); onSubmit()
+                                }
+                            },
                             expectedLength = null,
                             placeholder = "Transcribe here...",
                         )
+                        if (showEmptyError) {
+                            Text(
+                                text = "Transcribe what you hear before submitting.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         Button(
-                            onClick = { keyboard?.hide(); onSubmit() },
+                            onClick = {
+                                if (localAnswer.isBlank()) {
+                                    showEmptyError = true
+                                } else {
+                                    keyboard?.hide(); onSubmit()
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text("Submit") }
                     }

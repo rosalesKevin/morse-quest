@@ -6,7 +6,7 @@ import kotlinx.coroutines.test.runTest
 import morse.android.persistence.FakeProgressRepository
 import morse.android.persistence.FakeSettingsRepository
 import morse.android.persistence.StoredSession
-import morse.android.persistence.UserSettings
+import morse.android.quest.FakeDailyQuestRepository
 import morse.android.util.MainDispatcherRule
 import morse.practice.LessonCatalog
 import morse.practice.TimeProvider
@@ -27,7 +27,7 @@ class HomeViewModelTest {
 
     @Test
     fun `initial state shows zero streak and zero accuracy`() = runTest {
-        val vm = HomeViewModel(FakeProgressRepository(), FakeSettingsRepository(), lessons, timeProvider)
+        val vm = HomeViewModel(FakeProgressRepository(), FakeSettingsRepository(), FakeDailyQuestRepository(), lessons, timeProvider)
         vm.uiState.test {
             val state = awaitItem()
             assertEquals(0, state.streakDays)
@@ -37,7 +37,7 @@ class HomeViewModelTest {
 
     @Test
     fun `initial state shows one unlocked lesson`() = runTest {
-        val vm = HomeViewModel(FakeProgressRepository(), FakeSettingsRepository(), lessons, timeProvider)
+        val vm = HomeViewModel(FakeProgressRepository(), FakeSettingsRepository(), FakeDailyQuestRepository(), lessons, timeProvider)
         vm.uiState.test {
             assertEquals(1, awaitItem().unlockedLessonCount)
         }
@@ -45,42 +45,39 @@ class HomeViewModelTest {
 
     @Test
     fun `total lessons matches catalog size`() = runTest {
-        val vm = HomeViewModel(FakeProgressRepository(), FakeSettingsRepository(), lessons, timeProvider)
+        val vm = HomeViewModel(FakeProgressRepository(), FakeSettingsRepository(), FakeDailyQuestRepository(), lessons, timeProvider)
         vm.uiState.test {
             assertEquals(lessons.size, awaitItem().totalLessons)
         }
     }
 
     @Test
-    fun `quick start default wpm is seeded from settings`() = runTest {
-        val vm = HomeViewModel(
-            FakeProgressRepository(),
-            FakeSettingsRepository(UserSettings(wpm = 9)),
-            lessons,
-            timeProvider,
+    fun `ui state points start practicing to the latest unlocked lesson`() = runTest {
+        val sessions = listOf(
+            storedSession(lessonId = lessons[0].id, correct = 8, total = 10, recordedAt = fixedTime - 86_400_000L),
+            storedSession(lessonId = lessons[1].id, correct = 8, total = 10, recordedAt = fixedTime),
         )
+        val vm = HomeViewModel(FakeProgressRepository(sessions = sessions), FakeSettingsRepository(), FakeDailyQuestRepository(), lessons, timeProvider)
 
         vm.uiState.test {
-            assertEquals(9, awaitItem().quickStartDefaultWpm)
+            val state = awaitItem()
+            assertEquals(lessons[2].id, state.currentPathLessonId)
+            assertEquals(lessons[2].title, state.currentPathLessonTitle)
         }
     }
 
     @Test
-    fun `quickPracticeLessonTitle is populated from most recently practiced session`() = runTest {
-        val session = StoredSession(
-            lessonId = lessons[1].id,
-            correct = 8,
-            total = 10,
-            wpm = 20.0,
-            mistakes = emptyList(),
-            recordedAtEpochMillis = fixedTime,
+    fun `ui state shows last practiced and next lesson titles`() = runTest {
+        val sessions = listOf(
+            storedSession(lessonId = lessons[0].id, correct = 8, total = 10, recordedAt = fixedTime - 86_400_000L),
+            storedSession(lessonId = lessons[1].id, correct = 5, total = 10, recordedAt = fixedTime),
         )
-        val repo = FakeProgressRepository(sessions = listOf(session))
-        val vm = HomeViewModel(repo, FakeSettingsRepository(), lessons, timeProvider)
+        val vm = HomeViewModel(FakeProgressRepository(sessions = sessions), FakeSettingsRepository(), FakeDailyQuestRepository(), lessons, timeProvider)
 
         vm.uiState.test {
             val state = awaitItem()
-            assertEquals(lessons[1].title, state.quickPracticeLessonTitle)
+            assertEquals(lessons[1].title, state.lastPracticedLessonTitle)
+            assertEquals(lessons[2].title, state.nextLessonTitle)
         }
     }
 
@@ -90,4 +87,18 @@ class HomeViewModelTest {
 
         assertFalse(fieldNames.contains("recommendedLevel"))
     }
+
+    private fun storedSession(
+        lessonId: String,
+        correct: Int,
+        total: Int,
+        recordedAt: Long,
+    ) = StoredSession(
+        lessonId = lessonId,
+        correct = correct,
+        total = total,
+        wpm = 20.0,
+        mistakes = emptyList(),
+        recordedAtEpochMillis = recordedAt,
+    )
 }

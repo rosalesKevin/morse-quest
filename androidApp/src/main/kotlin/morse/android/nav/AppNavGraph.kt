@@ -13,6 +13,7 @@ import morse.android.home.HomeScreen
 import morse.android.learn.LearnScreen
 import morse.android.practice.PracticeLaunchConfig
 import morse.android.practice.PracticeScreen
+import morse.android.quest.DailyQuestScreen
 import morse.android.reference.ReferenceScreen
 import morse.android.settings.SettingsScreen
 
@@ -26,6 +27,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object AudioDecode : Screen("audiodecode")
     object Freestyle : Screen("freestyle")
+    object DailyQuest : Screen("daily_quest")
 }
 
 @Composable
@@ -41,6 +43,7 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAudioDecode = { navController.navigate(Screen.AudioDecode.route) },
                 onNavigateToFreestyle = { navController.navigate(Screen.Freestyle.route) },
+                onNavigateToDailyQuest = { navController.navigate(Screen.DailyQuest.route) },
             )
         }
         composable(Screen.Learn.route) {
@@ -88,6 +91,9 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         }
         composable(Screen.Freestyle.route) {
             FreestyleScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.DailyQuest.route) {
+            DailyQuestScreen(onBack = { navController.popBackStack() })
         }
     }
 }

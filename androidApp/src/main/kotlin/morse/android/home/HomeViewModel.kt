@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import morse.android.persistence.IProgressRepository
 import morse.android.persistence.ISettingsRepository
+import morse.android.quest.IDailyQuestRepository
 import morse.practice.Lesson
 import morse.practice.TimeProvider
 import javax.inject.Inject
@@ -17,6 +18,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val progressRepository: IProgressRepository,
     private val settingsRepository: ISettingsRepository,
+    private val dailyQuestRepository: IDailyQuestRepository,
     private val lessons: @JvmSuppressWildcards List<Lesson>,
     private val timeProvider: TimeProvider,
 ) : ViewModel() {
@@ -30,15 +32,18 @@ class HomeViewModel @Inject constructor(
         val bestAccuracy: Double = 0.0,
         val longestStreakDays: Int = 0,
         val focusCharacters: List<Char> = emptyList(),
-        val quickPracticeLessonId: String = "",
-        val quickPracticeLessonTitle: String = "",
-        val quickStartDefaultWpm: Int = 20,
+        val currentPathLessonId: String = "",
+        val currentPathLessonTitle: String = "",
+        val lastPracticedLessonTitle: String = "",
+        val nextLessonTitle: String = "",
+        val dailyQuestCompleted: Boolean = false,
     )
 
     val uiState: StateFlow<UiState> = combine(
         progressRepository.sessionHistory,
         settingsRepository.settings,
-    ) { sessions, settings ->
+        dailyQuestRepository.completedToday,
+    ) { sessions, _, questCompleted ->
             val tracker = progressRepository.buildTracker(sessions, lessons, timeProvider)
             val summary = HomeSummaryCalculator.build(sessions, lessons, timeProvider)
             UiState(
@@ -50,9 +55,11 @@ class HomeViewModel @Inject constructor(
                 bestAccuracy = summary.bestAccuracy,
                 longestStreakDays = summary.longestStreakDays,
                 focusCharacters = summary.focusCharacters,
-                quickPracticeLessonId = summary.quickPracticeLessonId,
-                quickPracticeLessonTitle = summary.quickPracticeLessonTitle,
-                quickStartDefaultWpm = settings.wpm,
+                currentPathLessonId = summary.currentPathLessonId,
+                currentPathLessonTitle = summary.currentPathLessonTitle,
+                lastPracticedLessonTitle = summary.lastPracticedLessonTitle,
+                nextLessonTitle = summary.nextLessonTitle,
+                dailyQuestCompleted = questCompleted,
             )
         }
         .stateIn(

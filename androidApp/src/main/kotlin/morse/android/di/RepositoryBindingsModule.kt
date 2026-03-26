@@ -12,6 +12,8 @@ import morse.android.persistence.IProgressRepository
 import morse.android.persistence.ISettingsRepository
 import morse.android.persistence.ProgressRepository
 import morse.android.persistence.SettingsRepository
+import morse.android.quest.DailyQuestRepository
+import morse.android.quest.IDailyQuestRepository
 import javax.inject.Singleton
 
 @Module
@@ -29,4 +31,7 @@ abstract class RepositoryBindingsModule {
 
     @Binds @Singleton
     abstract fun bindHapticsController(impl: HapticsController): IHapticsController
+
+    @Binds @Singleton
+    abstract fun bindDailyQuestRepository(impl: DailyQuestRepository): IDailyQuestRepository
 }

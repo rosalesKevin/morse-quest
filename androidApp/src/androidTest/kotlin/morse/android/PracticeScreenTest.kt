@@ -26,14 +26,12 @@ class PracticeScreenTest {
     @Test
     fun navigateToPracticeAndSeeFirstExercise() {
         composeRule.onNodeWithText("Start Practicing").performClick()
-        composeRule.onNodeWithText("Start session").performClick()
         composeRule.onNodeWithText("Submit").assertIsDisplayed()
     }
 
     @Test
     fun clearRemovesCapturedTapInput() {
         composeRule.onNodeWithText("Start Practicing").performClick()
-        composeRule.onNodeWithText("Start session").performClick()
         composeRule.onNodeWithText("Submit").performClick()
         composeRule.onNodeWithText("Next").performClick()
 
@@ -48,5 +46,15 @@ class PracticeScreenTest {
         composeRule.onNodeWithText("Clear").performClick()
 
         composeRule.onNodeWithText("No signal captured yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun lessonGuideIsVisibleByDefaultAndCanBeHidden() {
+        composeRule.onNodeWithText("Start Practicing").performClick()
+
+        composeRule.onNodeWithText("Lesson guide").assertIsDisplayed()
+        composeRule.onNodeWithText("Hide").performClick()
+        composeRule.onNodeWithText("Hidden for now.").assertIsDisplayed()
+        composeRule.onNodeWithText("Show").assertIsDisplayed()
     }
 }
